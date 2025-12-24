@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { ThemeProvider } from "next-themes";
 import { stackClientApp } from "../stack/client";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
+import { NavigationProgress } from "@/components/navigation-progress";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -75,6 +77,9 @@ export default function RootLayout({
         >
           <StackProvider app={stackClientApp}>
             <StackTheme theme={stackTheme}>
+              <Suspense fallback={null}>
+                <NavigationProgress />
+              </Suspense>
               {children}
               <ImpersonationBanner />
             </StackTheme>
