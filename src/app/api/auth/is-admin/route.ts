@@ -1,3 +1,4 @@
+// Force rebuild v2
 import { NextResponse } from "next/server";
 import { stackServerApp } from "@/stack/server";
 import { isSuperAdmin } from "@/lib/auth/superadmin";
