@@ -1,6 +1,6 @@
 import { getContacts, getPipelines, getOpportunities, getNewLeads } from "@/lib/actions/crm";
 import { getCrmSettings } from "@/lib/actions/crm-settings";
-import { CRMDashboard } from "@/app/crm/dashboard-content";
+import { CRMDashboard } from "@/components/crm/dashboard-content";
 
 export default async function AgencyCRMPage() {
   const [contacts, pipelines, opportunities, newLeads, crmSettings] = await Promise.all([

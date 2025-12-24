@@ -14,7 +14,7 @@ import {
   ArrowRight,
   Activity,
 } from "lucide-react";
-import { CRMDashboard } from "./dashboard-content";
+import { CRMDashboard } from "@/components/crm/dashboard-content";
 
 export default async function CRMPage() {
   const [contacts, pipelines, opportunities, newLeads, crmSettings] = await Promise.all([
