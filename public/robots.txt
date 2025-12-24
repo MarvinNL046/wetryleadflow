@@ -1,0 +1,22 @@
+# LeadFlow Robots.txt
+# https://wetryleadflow.com
+
+User-agent: *
+Allow: /
+
+# Allow all resource pages
+Allow: /resources/
+
+# Disallow admin and internal pages
+Disallow: /admin/
+Disallow: /crm/
+Disallow: /api/
+Disallow: /handler/
+
+# Sitemap location
+Sitemap: https://wetryleadflow.com/sitemap.xml
+
+# LLMs.txt - AI-readable site documentation
+# See: https://llmstxt.org
+# Basic: https://wetryleadflow.com/llms.txt
+# Full:  https://wetryleadflow.com/llms-full.txt

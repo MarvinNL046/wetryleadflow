@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User, Shield } from "lucide-react";
+import { LogOut, Settings, Shield, Kanban } from "lucide-react";
 
 interface AppHeaderProps {
   user: {
@@ -32,7 +32,7 @@ export function AppHeader({ user, org, isSuperAdmin }: AppHeaderProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="text-lg font-semibold">
+        <Link href="/crm" className="text-lg font-semibold">
           LeadFlow
         </Link>
         <span className="text-sm text-zinc-500">{org.name}</span>
@@ -68,14 +68,14 @@ export function AppHeader({ user, org, isSuperAdmin }: AppHeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard">
-                <User className="mr-2 h-4 w-4" />
-                Dashboard
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/crm">
-                <Settings className="mr-2 h-4 w-4" />
+                <Kanban className="mr-2 h-4 w-4" />
                 CRM
               </Link>
             </DropdownMenuItem>

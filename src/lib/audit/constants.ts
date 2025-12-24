@@ -6,11 +6,11 @@ export const AuditActions = {
   CONTACT_CREATED: "contact.created",
   CONTACT_UPDATED: "contact.updated",
   CONTACT_DELETED: "contact.deleted",
-  // Deals
-  DEAL_CREATED: "deal.created",
-  DEAL_UPDATED: "deal.updated",
-  DEAL_DELETED: "deal.deleted",
-  DEAL_MOVED: "deal.moved",
+  // Opportunities
+  OPPORTUNITY_CREATED: "opportunity.created",
+  OPPORTUNITY_UPDATED: "opportunity.updated",
+  OPPORTUNITY_DELETED: "opportunity.deleted",
+  OPPORTUNITY_MOVED: "opportunity.moved",
   // Pipelines
   PIPELINE_CREATED: "pipeline.created",
   PIPELINE_UPDATED: "pipeline.updated",
@@ -22,12 +22,18 @@ export const AuditActions = {
   USER_INVITED: "user.invited",
   USER_REMOVED: "user.removed",
   USER_ROLE_CHANGED: "user.role_changed",
+  USER_PROFILE_UPDATED: "user.profile_updated",
+  USER_DELETED: "user.deleted",
   // Auth
   USER_SIGNED_IN: "user.signed_in",
   USER_SIGNED_OUT: "user.signed_out",
+  // Impersonation
+  IMPERSONATE_START: "user.impersonate_start",
+  IMPERSONATE_STOP: "user.impersonate_stop",
   // Org & Workspace
   ORG_CREATED: "org.created",
   ORG_UPDATED: "org.updated",
+  ORG_DELETED: "org.deleted",
   WORKSPACE_CREATED: "workspace.created",
   WORKSPACE_UPDATED: "workspace.updated",
 } as const;
@@ -39,7 +45,7 @@ export type AuditAction = (typeof AuditActions)[keyof typeof AuditActions];
 // ============================================
 export const EntityTypes = {
   CONTACT: "contact",
-  DEAL: "deal",
+  OPPORTUNITY: "opportunity",
   PIPELINE: "pipeline",
   NOTE: "note",
   USER: "user",

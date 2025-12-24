@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { getAuditLogs, getAuditStats } from "@/lib/actions/admin";
 import { formatDistanceToNow } from "date-fns";
-import { ScrollText, Activity, TrendingUp } from "lucide-react";
+import { ScrollText, Activity, TrendingUp, Clock } from "lucide-react";
 
 // Action type color mapping
 function getActionBadgeVariant(action: string): "default" | "secondary" | "destructive" | "outline" {
@@ -24,7 +24,7 @@ function getActionBadgeVariant(action: string): "default" | "secondary" | "destr
 function formatEntityType(type: string): string {
   const typeMap: Record<string, string> = {
     contact: "Contact",
-    deal: "Deal",
+    opportunity: "Opportunity",
     pipeline: "Pipeline",
     note: "Note",
     user: "User",
@@ -49,6 +49,8 @@ export default async function AdminAuditPage() {
     getAuditStats(),
   ]);
 
+  const recentCount = stats.recentActions.reduce((sum, a) => sum + a.count, 0);
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -56,55 +58,67 @@ export default async function AdminAuditPage() {
         <p className="text-zinc-500">Platform-wide activity tracking</p>
       </div>
 
-      {/* Stats */}
-      <div className="mb-8 grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <ScrollText className="h-4 w-4" />
-              Total Events
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <Activity className="h-4 w-4" />
-              Last 7 Days
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.recentActions.reduce((sum, a) => sum + a.count, 0)}
+      {/* Stats Cards */}
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Total Events</p>
+              <p className="mt-2 text-2xl font-bold">{total.toLocaleString("nl-NL")}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <TrendingUp className="h-4 w-4" />
-              Top Action (7d)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
-              {stats.recentActions[0]?.action
-                ? formatAction(stats.recentActions[0].action)
-                : "None"}
+            <div className="stat-icon-gradient purple flex h-10 w-10 items-center justify-center rounded-lg">
+              <ScrollText className="h-5 w-5 text-purple-500" />
             </div>
-            {stats.recentActions[0] && (
-              <p className="text-sm text-zinc-500">
-                {stats.recentActions[0].count} occurrences
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Last 7 Days</p>
+              <p className="mt-2 text-2xl font-bold text-blue-600">{recentCount}</p>
+            </div>
+            <div className="stat-icon-gradient blue flex h-10 w-10 items-center justify-center rounded-lg">
+              <Activity className="h-5 w-5 text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Top Action (7d)</p>
+              <p className="mt-2 text-lg font-bold">
+                {stats.recentActions[0]?.action
+                  ? formatAction(stats.recentActions[0].action)
+                  : "None"}
               </p>
-            )}
-          </CardContent>
-        </Card>
+              {stats.recentActions[0] && (
+                <p className="text-xs text-zinc-500">{stats.recentActions[0].count} times</p>
+              )}
+            </div>
+            <div className="stat-icon-gradient green flex h-10 w-10 items-center justify-center rounded-lg">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Avg/Day</p>
+              <p className="mt-2 text-2xl font-bold">
+                {Math.round(recentCount / 7)}
+              </p>
+            </div>
+            <div className="stat-icon-gradient amber flex h-10 w-10 items-center justify-center rounded-lg">
+              <Clock className="h-5 w-5 text-amber-500" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Recent Activity by Type */}
+      {/* Activity by Type */}
       {stats.recentActions.length > 0 && (
         <Card className="mb-8">
           <CardHeader>
@@ -129,12 +143,18 @@ export default async function AdminAuditPage() {
       {/* Audit Log Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent Events ({total})</CardTitle>
+          <CardTitle className="text-base">Recent Events</CardTitle>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <div className="py-8 text-center text-zinc-500">
-              No audit logs yet. Actions will appear here as users interact with the platform.
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <ScrollText className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">No Audit Logs Yet</h3>
+              <p className="max-w-sm text-sm text-zinc-500">
+                Actions will appear here as users interact with the platform.
+              </p>
             </div>
           ) : (
             <Table>

@@ -1,0 +1,339 @@
+# LeadFlow - Uitgebreide Documentatie
+
+> AI-powered CRM en lead management platform voor het Nederlandse MKB. Automatiseer je sales pipeline, integreer Meta Lead Ads, en sluit meer deals met AI-gedreven inzichten.
+
+---
+
+## Over LeadFlow
+
+LeadFlow is een modern Customer Relationship Management (CRM) systeem specifiek ontworpen voor kleine en middelgrote bedrijven in Nederland en Belgie. In tegenstelling tot complexe enterprise CRM's zoals Salesforce of HubSpot, focust LeadFlow op eenvoud en snelle waarde.
+
+### Waarom LeadFlow?
+
+**Het Probleem**
+MKB-bedrijven besteden gemiddeld 5+ uur per week aan handmatige lead administratie. Leads van Facebook en Instagram moeten handmatig worden gekopieerd, follow-ups worden vergeten, en er is geen inzicht in welke leads prioriteit verdienen.
+
+**De Oplossing**
+LeadFlow automatiseert het volledige lead-to-deal proces:
+1. Leads van Meta Ads komen automatisch binnen
+2. AI scoort leads op conversiekans
+3. Geautomatiseerde follow-up emails worden verstuurd
+4. Visuele pipeline toont waar elke deal staat
+5. Analytics dashboard geeft real-time inzichten
+
+### Doelgroep
+
+LeadFlow is ideaal voor:
+- **Makelaars**: Vastgoed leads automatisch opvolgen
+- **Marketing Agencies**: Client leads beheren en doorzetten
+- **E-commerce**: Abandoned cart en lead nurturing
+- **B2B SaaS**: Trial-to-paid conversie optimaliseren
+- **Consultants**: Client pipeline en projecten beheren
+- **Coaches & Trainers**: Cursus leads converteren
+
+---
+
+## Kernfunctionaliteit
+
+### 1. Meta Leads Integratie
+
+LeadFlow is de enige Nederlandse CRM met native Meta Lead Ads integratie.
+
+**Hoe het werkt:**
+- Verbind je Facebook/Instagram Business account (eenmalig)
+- Selecteer welke Lead Ad formulieren je wilt synchroniseren
+- Leads verschijnen automatisch in je CRM binnen seconden
+- Alle velden worden automatisch gemapt (naam, email, telefoon, custom velden)
+
+**Voordelen:**
+- Geen Zapier of andere tools nodig
+- Real-time synchronisatie (geen vertraging)
+- Automatische deduplicatie
+- Volledige lead data inclusief ad campaign info
+
+### 2. AI Lead Scoring
+
+Machine learning analyseert elke lead en geeft een score van 0-100.
+
+**Factoren die meewegen:**
+- Gedrag: Hoe snel reageert de lead op emails?
+- Engagement: Opent de lead je berichten?
+- Profiel: Past de lead bij je ideale klantprofiel?
+- Timing: Is dit het juiste moment om te converteren?
+- Historisch: Wat zien we bij vergelijkbare leads?
+
+**Resultaat:**
+- Focus op leads met hoogste kans
+- Bespaar tijd op koude leads
+- Verhoog conversieratio met 30-50%
+
+### 3. Visuele Pipeline (Kanban)
+
+Beheer je sales proces met drag-and-drop boards.
+
+**Features:**
+- Onbeperkt aantal pipelines
+- Aanpasbare stages (New → Contact → Meeting → Proposal → Won/Lost)
+- Deal waarde tracking
+- Automatische herinneringen
+- Team toewijzing
+
+**Stage Voorbeelden:**
+- Lead Binnenkomst
+- Eerste Contact
+- Demo Gepland
+- Voorstel Verstuurd
+- Onderhandeling
+- Gewonnen / Verloren
+
+### 4. Email Automatisering
+
+Geautomatiseerde sequences voor lead nurturing.
+
+**Mogelijkheden:**
+- Welcome sequences voor nieuwe leads
+- Follow-up reminders na X dagen zonder reactie
+- Re-engagement voor koude leads
+- Post-purchase onboarding
+
+**Templates beschikbaar voor:**
+- Eerste contact
+- Meeting reminder
+- Proposal follow-up
+- Win-back campaigns
+
+### 5. Contact Management
+
+Centraal overzicht van al je contacten en hun historie.
+
+**Features:**
+- Volledige contacthistorie
+- Tags en segmentatie
+- Import/export (CSV)
+- Merge duplicates
+- Activity timeline
+- Notes en attachments
+
+### 6. Analytics & Reporting
+
+Real-time inzichten in je sales performance.
+
+**Dashboards:**
+- Pipeline value (totale waarde in pipeline)
+- Conversion rates per stage
+- Average deal cycle time
+- Lead sources breakdown
+- Team performance
+- Revenue forecasting
+
+---
+
+## Prijzen & Abonnementen
+
+### Starter (Gratis)
+- Tot 100 contacten
+- 1 pipeline
+- Basic lead capture
+- Email support
+- 7 dagen data historie
+
+### Pro (€29/maand)
+- Onbeperkt contacten
+- Onbeperkt pipelines
+- Meta Leads integratie
+- AI lead scoring
+- Email automatisering
+- Priority support
+- Onbeperkte historie
+- API access
+
+### Enterprise (Op maat)
+- Alles van Pro
+- Dedicated account manager
+- Custom integraties
+- SSO / SAML
+- Advanced security
+- SLA garantie
+- On-premise optie
+- Training & onboarding
+
+**Algemene voorwaarden:**
+- 14 dagen gratis proberen
+- Geen creditcard nodig voor trial
+- Maandelijks opzegbaar
+- Prijzen excl. BTW
+
+---
+
+## Integraties
+
+### Native Integraties
+- **Meta Business Suite**: Facebook & Instagram Lead Ads
+- **Stripe**: Betalingen en subscripties
+- **Email**: Gmail, Outlook, custom SMTP
+
+### Via API
+- Zapier compatible
+- REST API documentatie beschikbaar
+- Webhooks voor real-time events
+
+### Geplande Integraties
+- Google Ads Lead Forms
+- LinkedIn Lead Gen Forms
+- WhatsApp Business
+- Mailchimp / ActiveCampaign
+
+---
+
+## Beveiliging & Privacy
+
+### GDPR Compliance
+- Data hosting in EU (Nederland)
+- Data Processing Agreement beschikbaar
+- Right to deletion supported
+- Data export functionaliteit
+
+### Technische Beveiliging
+- SSL/TLS encryptie
+- Encrypted at rest
+- Regular security audits
+- Two-factor authentication (Enterprise)
+
+### Data Retention
+- Starter: 7 dagen historie
+- Pro: Onbeperkt
+- Data deletion op verzoek binnen 30 dagen
+
+---
+
+## Support & Resources
+
+### Support Kanalen
+- Email: info@wetryleadflow.com
+- In-app feedback formulier
+- Kennisbank artikelen
+
+### Response Times
+- Starter: Best effort
+- Pro: Binnen 24 uur
+- Enterprise: Binnen 4 uur (SLA)
+
+### Kennisbank Topics
+1. Lead Generation - Strategieen voor meer leads
+2. AI & Automation - Slim werken met AI
+3. CRM Best Practices - Optimaal CRM gebruik
+4. Meta Ads - Facebook & Instagram advertising
+5. Pipeline Management - Deal tracking
+6. Sales Analytics - Data-driven verkoop
+7. Contact Management - Klantenbeheer
+8. Sales Automation - Processen automatiseren
+9. Team Collaboration - Samenwerken in teams
+10. Industry Solutions - Branche-specifieke tips
+
+---
+
+## Veelgestelde Vragen (FAQ)
+
+### Algemeen
+
+**Wat is LeadFlow?**
+LeadFlow is een AI-powered CRM platform voor het MKB, met focus op lead management en Meta Ads integratie.
+
+**Voor wie is LeadFlow geschikt?**
+MKB-bedrijven die leads genereren via Facebook/Instagram, of die een eenvoudig maar krachtig CRM zoeken.
+
+**Kan ik LeadFlow gratis proberen?**
+Ja, het Starter plan is permanent gratis. Pro heeft een 14-daagse trial.
+
+### Technisch
+
+**Hoe verbind ik mijn Facebook account?**
+Via Instellingen → Integraties → Meta Connect. Je wordt doorgestuurd naar Facebook voor authenticatie.
+
+**Kan ik data importeren uit mijn huidige CRM?**
+Ja, via CSV import. We ondersteunen ook migratie-assistentie voor Enterprise klanten.
+
+**Is er een mobiele app?**
+LeadFlow is volledig responsive en werkt op alle devices. Native apps zijn in ontwikkeling.
+
+### Pricing
+
+**Zijn er verborgen kosten?**
+Nee. De getoonde prijzen zijn compleet (excl. BTW).
+
+**Kan ik maandelijks opzeggen?**
+Ja, geen lange contracten. Opzeggen kan tot 1 dag voor verlenging.
+
+**Krijg ik korting bij jaarlijkse betaling?**
+Ja, 2 maanden gratis bij jaarlijkse betaling.
+
+---
+
+## Technische Specificaties
+
+### Platform
+- Frontend: Next.js 16 (React)
+- Backend: Node.js serverless
+- Database: PostgreSQL (Neon)
+- Hosting: Vercel (EU region)
+- CDN: Cloudflare
+
+### Browser Support
+- Chrome (laatste 2 versies)
+- Firefox (laatste 2 versies)
+- Safari (laatste 2 versies)
+- Edge (laatste 2 versies)
+
+### API
+- REST API
+- JSON responses
+- OAuth 2.0 authentication
+- Rate limiting: 100 req/min (Pro), 1000 req/min (Enterprise)
+- Webhook support
+
+---
+
+## Concurrentie Vergelijking
+
+| Feature | LeadFlow | Salesforce | HubSpot | Pipedrive |
+|---------|----------|------------|---------|-----------|
+| Prijs (starter) | Gratis | €25/user | Gratis* | €14/user |
+| Meta Leads native | ✓ | Via Zapier | Via Zapier | Via Zapier |
+| AI Lead Scoring | ✓ | Add-on | Enterprise only | X |
+| Nederlands | ✓ | Beperkt | ✓ | ✓ |
+| MKB focus | ✓ | X | Deels | ✓ |
+| Setup tijd | <5 min | Dagen | Uren | Uren |
+
+*HubSpot gratis heeft significante beperkingen
+
+---
+
+## Contact & Bedrijfsinformatie
+
+**Website:** https://wetryleadflow.com
+**Email:** info@wetryleadflow.com
+**Gevestigd:** Nederland
+
+**Social Media:**
+- LinkedIn: /company/leadflow
+- Facebook: @leadflowcrm
+- Instagram: @leadflow.crm
+
+---
+
+## Changelog / Recent Updates
+
+### December 2024
+- AI Lead Scoring verbeterd
+- Nieuwe analytics dashboards
+- Performance optimalisaties
+
+### November 2024
+- Multi-pipeline support
+- Team collaboration features
+- Email templates library
+
+### Oktober 2024
+- Meta Leads v2 integratie
+- Import/export verbeteringen
+- Dark mode support

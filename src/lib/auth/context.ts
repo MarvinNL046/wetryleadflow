@@ -4,9 +4,13 @@ import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, users, memberships, orgs, workspaces } from "@/lib/db";
+import { withRLSContext, type RLSContext } from "@/lib/db/rls";
 import { requireAuth } from "./index";
 import { syncUserToDb } from "./sync";
 import type { User, Org, Workspace, Membership } from "@/lib/db/schema";
+
+// Impersonation cookie name (must match impersonate.ts)
+const IMPERSONATE_COOKIE = "leadflow_impersonate";
 
 // Cookie names for storing current org/workspace selection
 const CURRENT_ORG_COOKIE = "leadflow_org_id";
@@ -67,19 +71,59 @@ export async function getCurrentWorkspaceId(orgId: number): Promise<number | nul
 }
 
 /**
+ * Check if currently impersonating a user
+ */
+async function getImpersonatedUserId(): Promise<number | null> {
+  const cookieStore = await cookies();
+  const impersonateCookie = cookieStore.get(IMPERSONATE_COOKIE);
+
+  if (!impersonateCookie) return null;
+
+  try {
+    const state = JSON.parse(impersonateCookie.value);
+    return state.targetUserId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get full auth context for the current request
  * Includes user, org, workspace, and role
+ * Supports impersonation for super admins
  */
 export async function getAuthContext(): Promise<AuthContext | null> {
+  // First, verify the real user is authenticated
   const stackUser = await requireAuth();
 
-  // Sync user to our database
-  const user = await syncUserToDb({
+  // Sync real user to database (ensures they exist)
+  await syncUserToDb({
     id: stackUser.id,
     primaryEmail: stackUser.primaryEmail,
     displayName: stackUser.displayName,
     profileImageUrl: stackUser.profileImageUrl,
   });
+
+  // Check if impersonating
+  const impersonatedUserId = await getImpersonatedUserId();
+
+  let user: User;
+
+  if (impersonatedUserId) {
+    // Get the impersonated user
+    const impersonatedUser = await db.query.users.findFirst({
+      where: eq(users.id, impersonatedUserId),
+    });
+    if (!impersonatedUser) return null;
+    user = impersonatedUser;
+  } else {
+    // Get the real user
+    const realUser = await db.query.users.findFirst({
+      where: eq(users.externalId, stackUser.id),
+    });
+    if (!realUser) return null;
+    user = realUser;
+  }
 
   // Get current org
   const orgId = await getCurrentOrgId(user.id);
@@ -149,4 +193,32 @@ export async function setCurrentWorkspace(workspaceId: number) {
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 365, // 1 year
   });
+}
+
+/**
+ * Get RLS context from the current auth context
+ * Use this to run RLS-protected database queries
+ */
+export function getRLSContext(context: AuthContext): RLSContext {
+  return {
+    workspaceId: context.workspace.id,
+    orgId: context.org.id,
+    userId: context.user.id,
+  };
+}
+
+/**
+ * Run a database operation with RLS protection based on current auth context
+ * This ensures queries only return data for the authenticated user's workspace
+ *
+ * @example
+ * const contacts = await withAuthRLS(async (db) => {
+ *   return db.query.contacts.findMany();
+ * });
+ */
+export async function withAuthRLS<T>(
+  callback: Parameters<typeof withRLSContext<T>>[1]
+): Promise<T> {
+  const context = await requireAuthContext();
+  return withRLSContext(getRLSContext(context), callback);
 }

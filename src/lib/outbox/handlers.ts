@@ -1,8 +1,8 @@
 import type { OutboxEvent } from "@/lib/db/schema";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { users, orgs, deals, pipelineStages } from "@/lib/db/schema";
-import { sendDealAssignedEmail, sendAutomationStatusEmail } from "@/lib/email/send";
+import { users, orgs, opportunities, pipelineStages } from "@/lib/db/schema";
+import { sendOpportunityAssignedEmail, sendAutomationStatusEmail } from "@/lib/email/send";
 
 // Type for event payload
 type EventPayload = Record<string, unknown>;
@@ -11,18 +11,18 @@ type EventPayload = Record<string, unknown>;
 export type EventHandler = (event: OutboxEvent) => Promise<void>;
 
 // ============================================
-// Deal Created Handler
+// Opportunity Created Handler
 // ============================================
-async function handleDealCreated(event: OutboxEvent): Promise<void> {
-  console.log(`[Outbox] Processing deal.created:`, event.entityId);
+async function handleOpportunityCreated(event: OutboxEvent): Promise<void> {
+  console.log(`[Outbox] Processing opportunity.created:`, event.entityId);
 
   const payload = event.payload as EventPayload;
-  const deal = payload.deal as { title?: string; assignedToId?: number } | undefined;
+  const opportunity = payload.opportunity as { title?: string; assignedToId?: number } | undefined;
 
-  // If deal is assigned to someone, send email notification
-  if (deal?.assignedToId) {
+  // If opportunity is assigned to someone, send email notification
+  if (opportunity?.assignedToId) {
     const assignee = await db.query.users.findFirst({
-      where: eq(users.id, deal.assignedToId),
+      where: eq(users.id, opportunity.assignedToId),
     });
 
     const org = await db.query.orgs.findFirst({
@@ -32,16 +32,16 @@ async function handleDealCreated(event: OutboxEvent): Promise<void> {
     if (assignee && org) {
       const createdBy = payload.createdBy as { email?: string } | undefined;
 
-      await sendDealAssignedEmail({
+      await sendOpportunityAssignedEmail({
         to: assignee.email,
         assigneeName: assignee.name || assignee.email,
         assignerName: createdBy?.email || "Someone",
-        dealTitle: deal.title || "Untitled Deal",
-        dealUrl: `${process.env.NEXT_PUBLIC_APP_URL}/crm/pipelines`,
+        opportunityTitle: opportunity.title || "Untitled Opportunity",
+        opportunityUrl: `${process.env.NEXT_PUBLIC_APP_URL}/crm/pipelines`,
         orgName: org.name,
         orgId: event.orgId,
         workspaceId: event.workspaceId,
-        dealId: event.entityId,
+        opportunityId: event.entityId,
         stageName: "New",
       });
     }
@@ -49,13 +49,13 @@ async function handleDealCreated(event: OutboxEvent): Promise<void> {
 }
 
 // ============================================
-// Deal Moved Handler
+// Opportunity Moved Handler
 // ============================================
-async function handleDealMoved(event: OutboxEvent): Promise<void> {
-  console.log(`[Outbox] Processing deal.moved:`, event.entityId);
+async function handleOpportunityMoved(event: OutboxEvent): Promise<void> {
+  console.log(`[Outbox] Processing opportunity.moved:`, event.entityId);
 
   const payload = event.payload as EventPayload;
-  const deal = payload.deal as { title?: string; assignedToId?: number } | undefined;
+  const opportunity = payload.opportunity as { title?: string; assignedToId?: number } | undefined;
   const toStageId = payload.toStageId as number | undefined;
 
   // Get stage info
@@ -70,9 +70,9 @@ async function handleDealMoved(event: OutboxEvent): Promise<void> {
   }
 
   // Notify assigned user about stage change
-  if (deal?.assignedToId) {
+  if (opportunity?.assignedToId) {
     const assignee = await db.query.users.findFirst({
-      where: eq(users.id, deal.assignedToId),
+      where: eq(users.id, opportunity.assignedToId),
     });
 
     const org = await db.query.orgs.findFirst({
@@ -82,18 +82,18 @@ async function handleDealMoved(event: OutboxEvent): Promise<void> {
     if (assignee && org) {
       const movedBy = payload.movedBy as { email?: string } | undefined;
 
-      // Only notify if someone else moved the deal
+      // Only notify if someone else moved the opportunity
       if (movedBy?.email && movedBy.email !== assignee.email) {
-        await sendDealAssignedEmail({
+        await sendOpportunityAssignedEmail({
           to: assignee.email,
           assigneeName: assignee.name || assignee.email,
           assignerName: movedBy.email,
-          dealTitle: deal.title || "Untitled Deal",
-          dealUrl: `${process.env.NEXT_PUBLIC_APP_URL}/crm/pipelines`,
+          opportunityTitle: opportunity.title || "Untitled Opportunity",
+          opportunityUrl: `${process.env.NEXT_PUBLIC_APP_URL}/crm/pipelines`,
           orgName: org.name,
           orgId: event.orgId,
           workspaceId: event.workspaceId,
-          dealId: event.entityId,
+          opportunityId: event.entityId,
           stageName,
         });
       }
@@ -102,24 +102,24 @@ async function handleDealMoved(event: OutboxEvent): Promise<void> {
 
   // Check for stage-specific automations (e.g., "Won" or "Lost" stages)
   if (stageName.toLowerCase() === "won" || stageName.toLowerCase() === "lost") {
-    console.log(`[Outbox] Deal ${event.entityId} moved to ${stageName} stage - trigger automations`);
+    console.log(`[Outbox] Opportunity ${event.entityId} moved to ${stageName} stage - trigger automations`);
     // Future: Add more automation triggers here
   }
 }
 
 // ============================================
-// Deal Won Handler
+// Opportunity Won Handler
 // ============================================
-async function handleDealWon(event: OutboxEvent): Promise<void> {
-  console.log(`[Outbox] Processing deal.won:`, event.entityId);
+async function handleOpportunityWon(event: OutboxEvent): Promise<void> {
+  console.log(`[Outbox] Processing opportunity.won:`, event.entityId);
   // Future: Send congratulations email, create invoice, etc.
 }
 
 // ============================================
-// Deal Lost Handler
+// Opportunity Lost Handler
 // ============================================
-async function handleDealLost(event: OutboxEvent): Promise<void> {
-  console.log(`[Outbox] Processing deal.lost:`, event.entityId);
+async function handleOpportunityLost(event: OutboxEvent): Promise<void> {
+  console.log(`[Outbox] Processing opportunity.lost:`, event.entityId);
   // Future: Send follow-up sequence, update analytics, etc.
 }
 
@@ -142,10 +142,10 @@ async function handleDefault(event: OutboxEvent): Promise<void> {
 // Event Handlers Registry
 // ============================================
 export const eventHandlers: Record<string, EventHandler> = {
-  "deal.created": handleDealCreated,
-  "deal.moved": handleDealMoved,
-  "deal.won": handleDealWon,
-  "deal.lost": handleDealLost,
+  "opportunity.created": handleOpportunityCreated,
+  "opportunity.moved": handleOpportunityMoved,
+  "opportunity.won": handleOpportunityWon,
+  "opportunity.lost": handleOpportunityLost,
   "contact.created": handleContactCreated,
 };
 

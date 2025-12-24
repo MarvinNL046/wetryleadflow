@@ -169,18 +169,18 @@ export async function getPendingEventCount(): Promise<number> {
 }
 
 // ============================================
-// Convenience: Publish Deal Event
+// Convenience: Publish Opportunity Event
 // ============================================
-export async function publishDealEvent(
+export async function publishOpportunityEvent(
   context: EventContext,
-  eventType: "deal.created" | "deal.updated" | "deal.deleted" | "deal.moved" | "deal.won" | "deal.lost",
-  dealId: number,
+  eventType: "opportunity.created" | "opportunity.updated" | "opportunity.deleted" | "opportunity.moved" | "opportunity.won" | "opportunity.lost",
+  opportunityId: number,
   payload: Record<string, unknown>
 ): Promise<OutboxEvent> {
   return publishEvent(context, {
     eventType,
-    entityType: "deal",
-    entityId: dealId,
+    entityType: "opportunity",
+    entityId: opportunityId,
     payload,
   });
 }
@@ -190,7 +190,7 @@ export async function publishDealEvent(
 // ============================================
 export async function publishContactEvent(
   context: EventContext,
-  eventType: "contact.created" | "contact.updated" | "contact.deleted",
+  eventType: "contact.created" | "contact.updated" | "contact.deleted" | "contact.follow_up_needed",
   contactId: number,
   payload: Record<string, unknown>
 ): Promise<OutboxEvent> {

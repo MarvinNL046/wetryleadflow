@@ -10,21 +10,21 @@ import {
 } from "@/components/ui/table";
 import { getOutboxStats } from "@/lib/actions/admin";
 import { formatDistanceToNow } from "date-fns";
-import { Zap, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Zap, Clock, CheckCircle, XCircle, Loader2, AlertTriangle } from "lucide-react";
 
 // Status badge variant mapping
 function getStatusBadge(status: string) {
   switch (status) {
     case "pending":
-      return { variant: "secondary" as const, icon: Clock, label: "Pending" };
+      return { variant: "secondary" as const, icon: Clock, label: "Pending", color: "text-zinc-500" };
     case "processing":
-      return { variant: "default" as const, icon: Loader2, label: "Processing" };
+      return { variant: "default" as const, icon: Loader2, label: "Processing", color: "text-blue-500" };
     case "completed":
-      return { variant: "outline" as const, icon: CheckCircle, label: "Completed" };
+      return { variant: "outline" as const, icon: CheckCircle, label: "Completed", color: "text-green-500" };
     case "failed":
-      return { variant: "destructive" as const, icon: XCircle, label: "Failed" };
+      return { variant: "destructive" as const, icon: XCircle, label: "Failed", color: "text-red-500" };
     default:
-      return { variant: "secondary" as const, icon: Clock, label: status };
+      return { variant: "secondary" as const, icon: Clock, label: status, color: "text-zinc-500" };
   }
 }
 
@@ -51,52 +51,55 @@ export default async function AdminOutboxPage() {
         <p className="text-zinc-500">Event outbox and automation processing</p>
       </div>
 
-      {/* Stats */}
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <Clock className="h-4 w-4" />
-              Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pending}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <Loader2 className="h-4 w-4" />
-              Processing
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{processing}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <CheckCircle className="h-4 w-4" />
-              Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completed}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-500">
-              <XCircle className="h-4 w-4" />
-              Failed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{failed}</div>
-          </CardContent>
-        </Card>
+      {/* Stats Cards */}
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Pending</p>
+              <p className="mt-2 text-2xl font-bold">{pending}</p>
+            </div>
+            <div className="stat-icon-gradient amber flex h-10 w-10 items-center justify-center rounded-lg">
+              <Clock className="h-5 w-5 text-amber-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Processing</p>
+              <p className="mt-2 text-2xl font-bold text-blue-600">{processing}</p>
+            </div>
+            <div className="stat-icon-gradient blue flex h-10 w-10 items-center justify-center rounded-lg">
+              <Loader2 className="h-5 w-5 text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Completed</p>
+              <p className="mt-2 text-2xl font-bold text-green-600">{completed}</p>
+            </div>
+            <div className="stat-icon-gradient green flex h-10 w-10 items-center justify-center rounded-lg">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-stat-card rounded-xl border border-zinc-200/50 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800/50 dark:bg-zinc-900/80">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Failed</p>
+              <p className="mt-2 text-2xl font-bold text-red-600">{failed}</p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30">
+              <XCircle className="h-5 w-5 text-red-500" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Event Types (24h) */}
@@ -118,17 +121,23 @@ export default async function AdminOutboxPage() {
       )}
 
       {/* Recent Events Table */}
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Zap className="h-4 w-4" />
+            <Zap className="h-4 w-4 text-amber-500" />
             Recent Events
           </CardTitle>
         </CardHeader>
         <CardContent>
           {stats.recentEvents.length === 0 ? (
-            <div className="py-8 text-center text-zinc-500">
-              No outbox events yet. Events will appear here when CRM actions are performed.
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <Zap className="h-8 w-8 text-amber-500" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">No Outbox Events Yet</h3>
+              <p className="max-w-sm text-sm text-zinc-500">
+                Events will appear here when CRM actions are performed.
+              </p>
             </div>
           ) : (
             <Table>
@@ -151,7 +160,7 @@ export default async function AdminOutboxPage() {
                     <TableRow key={event.id}>
                       <TableCell>
                         <Badge variant={statusInfo.variant} className="gap-1">
-                          <StatusIcon className="h-3 w-3" />
+                          <StatusIcon className={`h-3 w-3 ${statusInfo.color}`} />
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
@@ -194,13 +203,16 @@ export default async function AdminOutboxPage() {
       </Card>
 
       {/* Info Card */}
-      <Card className="mt-8">
+      <Card className="border-blue-200/30 bg-gradient-to-br from-blue-50/50 to-violet-50/50 dark:border-blue-900/30 dark:from-blue-950/30 dark:to-violet-950/30">
         <CardHeader>
-          <CardTitle className="text-base">How Automations Work</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AlertTriangle className="h-4 w-4 text-blue-500" />
+            How Automations Work
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
           <p>
-            <strong>1. Events are published</strong> - When users perform actions (create contacts, move deals), events are added to the outbox.
+            <strong>1. Events are published</strong> - When users perform actions (create contacts, move opportunities), events are added to the outbox.
           </p>
           <p>
             <strong>2. Job runner processes events</strong> - The <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">/api/jobs/outbox</code> endpoint processes pending events.

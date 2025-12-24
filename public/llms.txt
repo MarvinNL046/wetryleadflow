@@ -1,0 +1,85 @@
+# LeadFlow
+
+> AI-powered CRM en lead management platform voor het Nederlandse MKB. Automatiseer je sales pipeline, integreer Meta Lead Ads, en sluit meer deals met AI-gedreven inzichten.
+
+## Wat is LeadFlow?
+
+LeadFlow is een modern CRM-systeem specifiek ontworpen voor kleine en middelgrote bedrijven in Nederland en Belgie. Het platform combineert traditionele CRM-functionaliteit met AI-automatisering en directe integratie met Meta (Facebook & Instagram) Lead Ads.
+
+### Kernfuncties
+- **Meta Leads Integratie**: Automatisch leads importeren vanuit Facebook en Instagram Lead Ads
+- **AI Lead Scoring**: Automatische prioritering van leads op basis van conversiekans
+- **Visuele Pipelines**: Kanban-style deal tracking met drag-and-drop
+- **Email Automatisering**: Geautomatiseerde follow-up sequences
+- **Team Collaboration**: Multi-user met rollen en permissies
+- **Analytics Dashboard**: Real-time inzichten in sales performance
+
+## Belangrijke Pagina's
+
+- [Homepage](https://wetryleadflow.com): Platform overzicht en features
+- [Pricing](https://wetryleadflow.com/#pricing): Abonnementen en prijzen
+- [Aanmelden](https://wetryleadflow.com/handler/sign-up): Gratis account aanmaken
+- [Inloggen](https://wetryleadflow.com/handler/sign-in): Bestaande gebruikers
+
+## Prijzen
+
+| Plan | Prijs | Ideaal voor |
+|------|-------|-------------|
+| Starter | Gratis | Starters, tot 100 contacten |
+| Pro | €29/maand | Groeiende teams, onbeperkt contacten |
+| Enterprise | Op maat | Grote organisaties met custom needs |
+
+Alle betaalde plannen: 14 dagen gratis proberen, geen creditcard nodig.
+
+## Kennisbank (Resources)
+
+### Lead Generation
+- [Lead Magnets](https://wetryleadflow.com/resources/lead-generation/lead-magnets)
+- [Landing Pages](https://wetryleadflow.com/resources/lead-generation/landing-pages)
+- [Form Optimization](https://wetryleadflow.com/resources/lead-generation/form-optimization)
+
+### Meta Ads Integratie
+- [Facebook Lead Ads](https://wetryleadflow.com/resources/meta-ads/facebook-lead-ads)
+- [Instagram Lead Generation](https://wetryleadflow.com/resources/meta-ads/instagram-lead-generation)
+- [Audience Targeting](https://wetryleadflow.com/resources/meta-ads/audience-targeting)
+
+### AI & Automatisering
+- [AI Lead Scoring](https://wetryleadflow.com/resources/ai-automation/ai-lead-scoring)
+- [Automation Workflows](https://wetryleadflow.com/resources/ai-automation/automation-workflows)
+- [Predictive Analytics](https://wetryleadflow.com/resources/ai-automation/predictive-analytics)
+
+### Sales Automation
+- [Follow-up Automation](https://wetryleadflow.com/resources/sales-automation/follow-up-automation)
+- [Email Sequences](https://wetryleadflow.com/resources/sales-automation/email-sequences)
+- [Task Automation](https://wetryleadflow.com/resources/sales-automation/task-automation)
+
+### Pipeline Management
+- [Kanban Boards](https://wetryleadflow.com/resources/pipeline-management/kanban-boards)
+- [Sales Forecasting](https://wetryleadflow.com/resources/pipeline-management/sales-forecasting)
+- [Deal Velocity](https://wetryleadflow.com/resources/pipeline-management/deal-velocity)
+
+### Industrie Oplossingen
+- [Makelaars CRM](https://wetryleadflow.com/resources/industry-solutions/real-estate-crm)
+- [Agency CRM](https://wetryleadflow.com/resources/industry-solutions/agency-crm)
+- [SaaS Sales](https://wetryleadflow.com/resources/industry-solutions/saas-sales)
+- [E-commerce Leads](https://wetryleadflow.com/resources/industry-solutions/ecommerce-leads)
+- [Consultant CRM](https://wetryleadflow.com/resources/industry-solutions/consultant-crm)
+
+## Juridisch
+
+- [Privacy Policy](https://wetryleadflow.com/privacy)
+- [Terms of Service](https://wetryleadflow.com/terms)
+- [Data Deletion](https://wetryleadflow.com/data-deletion)
+
+## Contact
+
+- Website: https://wetryleadflow.com
+- Email: info@wetryleadflow.com
+
+## Technische Details
+
+- Platform: Web-based SaaS (Next.js)
+- Integraties: Meta Business Suite, Stripe
+- API: REST API beschikbaar voor Pro en Enterprise
+- Hosting: EU (GDPR compliant)
+- Talen: Nederlands

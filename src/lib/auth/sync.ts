@@ -19,30 +19,32 @@ interface StackUser {
  * Also creates a default org/workspace for new users
  */
 export async function syncUserToDb(stackUser: StackUser): Promise<User> {
-  // Check if user already exists
+  const email = stackUser.primaryEmail ?? `${stackUser.id}@unknown.local`;
+
+  // First, try to find existing user by externalId OR email
   const existingUser = await db.query.users.findFirst({
-    where: eq(users.externalId, stackUser.id),
+    where: (users, { or, eq }) =>
+      or(eq(users.externalId, stackUser.id), eq(users.email, email)),
   });
 
   if (existingUser) {
-    // Update existing user
+    // Update existing user - link to Stack Auth if not already linked
     const [updated] = await db
       .update(users)
       .set({
+        externalId: stackUser.id, // Always update to current Stack Auth ID
         email: stackUser.primaryEmail ?? existingUser.email,
         name: stackUser.displayName ?? existingUser.name,
         avatarUrl: stackUser.profileImageUrl,
         updatedAt: new Date(),
       })
-      .where(eq(users.externalId, stackUser.id))
+      .where(eq(users.id, existingUser.id))
       .returning();
     return updated;
   }
 
   // Create new user with default org and workspace
-  const email = stackUser.primaryEmail ?? `${stackUser.id}@unknown.local`;
-
-  // Create user
+  // Use onConflictDoUpdate to handle race conditions and existing users
   const [newUser] = await db
     .insert(users)
     .values({
@@ -50,6 +52,15 @@ export async function syncUserToDb(stackUser: StackUser): Promise<User> {
       email,
       name: stackUser.displayName,
       avatarUrl: stackUser.profileImageUrl,
+    })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: {
+        externalId: stackUser.id,
+        name: stackUser.displayName,
+        avatarUrl: stackUser.profileImageUrl,
+        updatedAt: new Date(),
+      },
     })
     .returning();
 

@@ -28,8 +28,8 @@ export default async function AdminOrgDetailPage({
   }
 
   const totalContacts = org.workspaces.reduce((sum, w) => sum + w.stats.contacts, 0);
-  const totalDeals = org.workspaces.reduce((sum, w) => sum + w.stats.deals, 0);
-  const totalValue = org.workspaces.reduce((sum, w) => sum + w.stats.dealValue, 0);
+  const totalOpportunities = org.workspaces.reduce((sum, w) => sum + w.stats.opportunities, 0);
+  const totalValue = org.workspaces.reduce((sum, w) => sum + w.stats.opportunityValue, 0);
 
   return (
     <div className="p-8">
@@ -164,22 +164,22 @@ export default async function AdminOrgDetailPage({
                       <span className="font-medium">{workspace.stats.contacts}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500">Deals:</span>{" "}
-                      <span className="font-medium">{workspace.stats.deals}</span>
+                      <span className="text-zinc-500">Opportunities:</span>{" "}
+                      <span className="font-medium">{workspace.stats.opportunities}</span>
                     </div>
                     <div>
                       <span className="text-zinc-500">Pipelines:</span>{" "}
                       <span className="font-medium">{workspace.stats.pipelines}</span>
                     </div>
                   </div>
-                  {workspace.stats.dealValue > 0 && (
+                  {workspace.stats.opportunityValue > 0 && (
                     <div className="mt-2 flex items-center gap-1 text-sm">
                       <DollarSign className="h-3 w-3 text-zinc-400" />
                       <span className="font-medium">
                         {new Intl.NumberFormat("nl-NL", {
                           style: "currency",
                           currency: "EUR",
-                        }).format(workspace.stats.dealValue)}
+                        }).format(workspace.stats.opportunityValue)}
                       </span>
                     </div>
                   )}

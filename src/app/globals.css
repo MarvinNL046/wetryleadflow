@@ -123,3 +123,457 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Landing Page Specific Styles */
+:root {
+  /* Landing gradients */
+  --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+  --gradient-text: linear-gradient(90deg, #60a5fa, #a78bfa, #22d3ee);
+
+  /* Glow colors */
+  --glow-blue: rgba(59, 130, 246, 0.5);
+  --glow-purple: rgba(139, 92, 246, 0.5);
+  --glow-cyan: rgba(6, 182, 212, 0.4);
+
+  /* Landing specific */
+  --landing-bg: oklch(0.98 0 0);
+  --landing-card: oklch(1 0 0);
+  --landing-card-border: oklch(0.9 0 0);
+}
+
+.dark {
+  --landing-bg: oklch(0.08 0.015 270);
+  --landing-card: oklch(0.12 0.01 270);
+  --landing-card-border: oklch(0.2 0.02 270);
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animated gradient text */
+.gradient-text-animated {
+  background: linear-gradient(
+    90deg,
+    #60a5fa,
+    #a78bfa,
+    #22d3ee,
+    #60a5fa
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Glow button effect */
+.glow-button {
+  position: relative;
+  background: var(--gradient-primary);
+  transition: all 0.3s ease;
+}
+
+.glow-button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--gradient-primary);
+  border-radius: inherit;
+  filter: blur(12px);
+  opacity: 0.6;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.glow-button:hover::before {
+  opacity: 0.9;
+}
+
+/* Card glow on hover */
+.glow-card {
+  transition: all 0.3s ease;
+}
+
+.glow-card:hover {
+  box-shadow:
+    0 0 30px rgba(139, 92, 246, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Glass morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Background gradient orbs */
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.gradient-orb-blue {
+  background: var(--glow-blue);
+}
+
+.gradient-orb-purple {
+  background: var(--glow-purple);
+}
+
+.gradient-orb-cyan {
+  background: var(--glow-cyan);
+}
+
+/* Section spacing */
+.landing-section {
+  @apply py-20 md:py-28 lg:py-32;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse glow animation */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--glow-purple); }
+  50% { box-shadow: 0 0 40px var(--glow-purple), 0 0 60px var(--glow-blue); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ========================================
+   DASHBOARD STYLES
+   ======================================== */
+
+/* Dashboard Variables */
+:root {
+  --dashboard-sidebar-bg: rgba(250, 250, 250, 0.8);
+  --dashboard-card-glow: rgba(139, 92, 246, 0.08);
+  --dashboard-accent: #8b5cf6;
+  --dashboard-accent-secondary: #3b82f6;
+}
+
+.dark {
+  --dashboard-sidebar-bg: rgba(9, 9, 11, 0.85);
+  --dashboard-card-glow: rgba(139, 92, 246, 0.15);
+}
+
+/* Dashboard Sidebar */
+.dashboard-sidebar {
+  background: var(--dashboard-sidebar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.03) 0%,
+    transparent 50%,
+    rgba(59, 130, 246, 0.03) 100%
+  );
+  pointer-events: none;
+}
+
+.dark .dashboard-sidebar::before {
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.08) 0%,
+    transparent 50%,
+    rgba(59, 130, 246, 0.05) 100%
+  );
+}
+
+/* Sidebar gradient accent line */
+.sidebar-accent-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #8b5cf6, #3b82f6, #06b6d4);
+  opacity: 0.6;
+}
+
+.dark .sidebar-accent-line {
+  opacity: 0.8;
+}
+
+/* Nav item with gradient hover */
+.dashboard-nav-item {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.dashboard-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: linear-gradient(180deg, #8b5cf6, #3b82f6);
+  border-radius: 0 4px 4px 0;
+  transition: height 0.2s ease;
+}
+
+.dashboard-nav-item:hover::before,
+.dashboard-nav-item.active::before {
+  height: 60%;
+}
+
+.dashboard-nav-item.active {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent);
+}
+
+.dark .dashboard-nav-item.active {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
+}
+
+/* Agency theming via CSS variables */
+.agency-themed {
+  --color-primary: var(--agency-primary, #8b5cf6);
+  --color-secondary: var(--agency-secondary, #3b82f6);
+}
+
+/* Agency gradient (uses CSS variables set by AgencyProvider) */
+.agency-gradient {
+  background: linear-gradient(
+    to right,
+    var(--agency-primary, #8b5cf6),
+    var(--agency-secondary, #3b82f6)
+  );
+}
+
+/* Agency sidebar accent (uses agency colors) */
+.agency-sidebar-accent {
+  background: linear-gradient(
+    to bottom,
+    var(--agency-primary, #8b5cf6),
+    var(--agency-secondary, #3b82f6)
+  );
+}
+
+/* Agency nav item styling */
+.agency-nav-item::before {
+  background: linear-gradient(
+    180deg,
+    var(--agency-primary, #8b5cf6),
+    var(--agency-secondary, #3b82f6)
+  ) !important;
+}
+
+.agency-nav-item.active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--agency-primary, #8b5cf6) 10%, transparent),
+    transparent
+  );
+}
+
+/* Dashboard Stat Card */
+.dashboard-stat-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.dashboard-stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), transparent, rgba(59, 130, 246, 0.03));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-stat-card:hover {
+  border-color: rgba(139, 92, 246, 0.2);
+  box-shadow:
+    0 0 30px var(--dashboard-card-glow),
+    0 4px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dashboard-stat-card:hover::before {
+  opacity: 1;
+}
+
+/* Stat icon gradient background */
+.stat-icon-gradient {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.stat-icon-gradient.green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.15));
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.stat-icon-gradient.blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.15));
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.stat-icon-gradient.amber {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(234, 179, 8, 0.15));
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.stat-icon-gradient.purple {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.15));
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+/* Dashboard page background */
+.dashboard-bg {
+  position: relative;
+  background: var(--background);
+}
+
+.dashboard-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-bg::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .dashboard-bg::before {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+}
+
+.dark .dashboard-bg::after {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+}
+
+/* Dashboard header gradient text */
+.dashboard-title {
+  background: linear-gradient(135deg, var(--foreground) 0%, var(--foreground) 60%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Trend indicator */
+.trend-up {
+  color: #22c55e;
+}
+
+.trend-down {
+  color: #ef4444;
+}
+
+/* User card glow */
+.user-card-glow {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.user-card-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.user-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Quick action button */
+.quick-action-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.quick-action-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.quick-action-btn:hover::before {
+  opacity: 1;
+}
+
+/* Shimmer animation for loading states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}

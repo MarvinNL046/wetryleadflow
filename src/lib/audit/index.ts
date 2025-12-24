@@ -93,18 +93,18 @@ export async function logContactAction(
 }
 
 /**
- * Log a deal action
+ * Log an opportunity action
  */
-export async function logDealAction(
+export async function logOpportunityAction(
   context: AuditContext,
-  action: "deal.created" | "deal.updated" | "deal.deleted" | "deal.moved",
-  dealId: number,
+  action: "opportunity.created" | "opportunity.updated" | "opportunity.deleted" | "opportunity.moved",
+  opportunityId: number,
   metadata?: Record<string, unknown>
 ): Promise<void> {
   await logAudit(context, {
     action,
-    entityType: "deal",
-    entityId: dealId,
+    entityType: "opportunity",
+    entityId: opportunityId,
     metadata,
   });
 }
@@ -158,4 +158,30 @@ export async function logNoteAction(
     entityId: noteId,
     metadata,
   });
+}
+
+/**
+ * Log any audit event (generic helper for actions without context)
+ * Useful for system-level actions like impersonation
+ */
+export async function logAuditEvent(params: {
+  action: AuditAction;
+  entityType: EntityType;
+  entityId?: number | null;
+  details?: Record<string, unknown>;
+  userId?: number | null;
+  userEmail?: string | null;
+}): Promise<void> {
+  await logAudit(
+    {
+      userId: params.userId,
+      userEmail: params.userEmail,
+    },
+    {
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      metadata: params.details,
+    }
+  );
 }

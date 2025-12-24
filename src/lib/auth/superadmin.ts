@@ -3,17 +3,20 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { stackServerApp } from "@/stack/server";
 
-// Add your email(s) here to grant super admin access
-const SUPER_ADMINS = [
-  "marvinsmit1988@gmail.com",
-];
+// Super admin emails from environment variable (comma-separated)
+// Example: SUPER_ADMIN_EMAILS=admin1@example.com,admin2@example.com
+function getSuperAdminEmails(): string[] {
+  const emails = process.env.SUPER_ADMIN_EMAILS;
+  if (!emails) return [];
+  return emails.split(",").map(email => email.trim().toLowerCase());
+}
 
 /**
  * Check if an email is a super admin
  */
 export function isSuperAdmin(email: string | null): boolean {
   if (!email) return false;
-  return SUPER_ADMINS.includes(email.toLowerCase());
+  return getSuperAdminEmails().includes(email.toLowerCase());
 }
 
 /**
