@@ -1,66 +1,157 @@
-import Link from "next/link";
-import { requireAuthContext } from "@/lib/auth/context";
-import { isSuperAdmin } from "@/lib/auth/superadmin";
-import { Users, Kanban, LayoutDashboard, LogOut, Shield, Home } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+"use client";
 
-export default async function CRMLayout({
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useUser } from "@stackframe/stack";
+import { Users, Kanban, LayoutDashboard, LogOut, Shield, Cog, User, BarChart3, MessageSquare, BookOpen, Receipt } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FeedbackModal } from "@/components/feedback/feedback-modal";
+import { OnboardingProvider, OnboardingModal, SidebarChecklist } from "@/components/onboarding";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { AnnouncementsClient } from "@/components/announcements/announcements-client";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { href: "/crm", label: "Overview", icon: LayoutDashboard },
+  { href: "/crm/contacts", label: "Contacts", icon: Users },
+  { href: "/crm/pipelines", label: "Pipelines", icon: Kanban },
+  { href: "/crm/invoicing", label: "Facturatie", icon: Receipt },
+  { href: "/crm/analytics", label: "Analytics", icon: BarChart3 },
+];
+
+export default function CRMLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const ctx = await requireAuthContext();
-  const isAdmin = isSuperAdmin(ctx.user.email);
+  const user = useUser({ or: "redirect" });
+  const pathname = usePathname();
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is super admin via API
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const res = await fetch("/api/auth/is-admin");
+        const data = await res.json();
+        setIsAdmin(data.isAdmin);
+      } catch {
+        setIsAdmin(false);
+      }
+    }
+    if (user) {
+      checkAdmin();
+    }
+  }, [user]);
+
+  const org = user?.selectedTeam;
 
   return (
+    <OnboardingProvider>
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="relative w-64 border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex h-14 items-center border-b border-zinc-200 px-4 dark:border-zinc-800">
-          <Link href="/dashboard" className="text-lg font-semibold">
-            LeadFlow
+      <aside className="dashboard-sidebar relative w-64 border-r border-zinc-200/50 dark:border-zinc-800/50">
+        {/* Gradient accent line */}
+        <div className="sidebar-accent-line" />
+
+        {/* Logo */}
+        <div className="relative z-10 flex h-14 items-center justify-between border-b border-zinc-200/50 px-4 dark:border-zinc-800/50">
+          <Link href="/crm" className="flex items-center gap-2">
+            <Image
+              src="/logo/wetryleadflow-logo-trans-bg.webp"
+              alt="LeadFlow"
+              width={32}
+              height={32}
+              className="h-7 w-auto"
+              priority
+            />
+            <span className="text-lg font-bold">
+              Lead<span className="bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent">Flow</span>
+            </span>
           </Link>
+          <NotificationBell />
         </div>
 
-        <nav className="space-y-1 p-4">
-          <Link
-            href="/crm"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
-          </Link>
-          <Link
-            href="/crm/contacts"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            <Users className="h-4 w-4" />
-            Contacts
-          </Link>
-          <Link
-            href="/crm/pipelines"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            <Kanban className="h-4 w-4" />
-            Pipelines
-          </Link>
+        {/* Navigation */}
+        <nav className="relative z-10 space-y-1 p-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== "/crm" && pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "active text-violet-600 dark:text-violet-400"
+                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                )}
+              >
+                <item.icon className={cn(
+                  "h-4 w-4 transition-colors",
+                  isActive && "text-violet-500"
+                )} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
+        {/* Setup Checklist - shows if onboarding incomplete */}
+        <div className="relative z-10 px-4 py-2">
+          <SidebarChecklist />
+        </div>
+
         {/* Bottom section */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+          {/* Infocentrum Button */}
+          <Link
+            href="/crm/infocentrum"
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200/50 bg-blue-50/50 px-3 py-2 text-xs font-medium text-blue-700 transition-all hover:bg-blue-100/50 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+          >
+            <BookOpen className="h-3 w-3" />
+            Infocentrum
+          </Link>
+
+          {/* Feedback Button */}
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-violet-200/50 bg-violet-50/50 px-3 py-2 text-xs font-medium text-violet-700 transition-all hover:bg-violet-100/50 dark:border-violet-800/50 dark:bg-violet-900/20 dark:text-violet-300 dark:hover:bg-violet-900/40"
+          >
+            <MessageSquare className="h-3 w-3" />
+            Feedback
+          </button>
+
+          {/* CRM Settings */}
+          <Link
+            href="/crm/settings"
+            className="quick-action-btn mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200/50 bg-zinc-100/50 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
+          >
+            <Cog className="h-3 w-3" />
+            CRM Settings
+          </Link>
+
+          {/* Divider */}
+          <div className="mb-3 border-t border-zinc-200/50 dark:border-zinc-800/50" />
+
           {/* Quick links */}
           <div className="mb-3 flex gap-2">
             <Link
-              href="/dashboard"
-              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              href="/settings"
+              className="quick-action-btn flex flex-1 items-center justify-center gap-2 rounded-lg border border-zinc-200/50 bg-zinc-100/50 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
             >
-              <Home className="h-3 w-3" />
-              Dashboard
+              <User className="h-3 w-3" />
+              Account
             </Link>
             {isAdmin && (
               <Link
                 href="/admin"
-                className="flex items-center justify-center gap-2 rounded-md bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-3 py-2 text-xs font-medium text-white shadow-lg shadow-violet-500/25 transition-shadow hover:shadow-violet-500/40"
               >
                 <Shield className="h-3 w-3" />
                 Admin
@@ -69,25 +160,33 @@ export default async function CRMLayout({
           </div>
 
           {/* User info */}
-          <div className="flex items-center gap-3 rounded-md bg-zinc-100 p-3 dark:bg-zinc-900">
-            <Avatar className="h-8 w-8">
-              {ctx.user.avatarUrl && <AvatarImage src={ctx.user.avatarUrl} />}
-              <AvatarFallback className="text-xs">
-                {ctx.user.name?.[0] ?? ctx.user.email[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium">
-                {ctx.user.name ?? ctx.user.email}
-              </p>
-              <p className="truncate text-xs text-zinc-500">{ctx.org.name}</p>
+          <div className="user-card-glow rounded-xl border border-zinc-200/50 bg-zinc-100/80 p-3 dark:border-zinc-800/50 dark:bg-zinc-900/80">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="h-9 w-9 ring-2 ring-violet-500/20">
+                  {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} />}
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-blue-500 text-xs text-white">
+                    {user?.displayName?.[0] ?? user?.primaryEmail?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online indicator */}
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-zinc-100 bg-green-500 dark:border-zinc-900" />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="truncate text-sm font-medium">
+                  {user?.displayName ?? user?.primaryEmail}
+                </p>
+                <p className="truncate text-xs text-zinc-500">
+                  {org?.displayName ?? "Personal"}
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Sign out */}
           <Link
             href="/handler/sign-out"
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200/50 px-3 py-2 text-sm font-medium text-zinc-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-zinc-800/50 dark:text-zinc-400 dark:hover:border-red-900/50 dark:hover:bg-red-950/30 dark:hover:text-red-400"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -96,9 +195,23 @@ export default async function CRMLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto bg-white dark:bg-zinc-950">
-        {children}
+      <main className="dashboard-bg flex-1 overflow-auto">
+        <div className="relative z-10">
+          {/* Announcements Banner */}
+          {user?.id && <AnnouncementsClient />}
+          {children}
+        </div>
       </main>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
+
+      {/* Onboarding Modal */}
+      <OnboardingModal />
     </div>
+    </OnboardingProvider>
   );
 }

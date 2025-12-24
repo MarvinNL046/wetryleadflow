@@ -1,6 +1,6 @@
 import * as React from "react";
 import { sendEmail } from "./index";
-import { InviteEmail, DealAssignedEmail, AutomationStatusEmail } from "./templates";
+import { InviteEmail, AgencyInviteEmail, OpportunityAssignedEmail, AutomationStatusEmail } from "./templates";
 
 // ============================================
 // Send Team Invite Email
@@ -39,36 +39,69 @@ export async function sendInviteEmail(params: SendInviteEmailParams) {
 }
 
 // ============================================
-// Send Deal Assigned Email
+// Send Agency Invite Email
 // ============================================
-interface SendDealAssignedEmailParams {
+interface SendAgencyInviteEmailParams {
+  to: string;
+  inviterName: string;
+  agencyName: string;
+  inviteUrl: string;
+  role: string;
+  agencyId: number;
+}
+
+export async function sendAgencyInviteEmail(params: SendAgencyInviteEmailParams) {
+  return sendEmail({
+    to: params.to,
+    subject: `You're invited to join ${params.agencyName} on LeadFlow`,
+    templateName: "agency_invite",
+    template: React.createElement(AgencyInviteEmail, {
+      inviterName: params.inviterName,
+      agencyName: params.agencyName,
+      inviteUrl: params.inviteUrl,
+      role: params.role,
+    }),
+    // Note: agencyId tracked in metadata since email_log schema only has orgId/workspaceId
+    metadata: {
+      agencyId: params.agencyId,
+      inviterName: params.inviterName,
+      agencyName: params.agencyName,
+      role: params.role,
+    },
+  });
+}
+
+// ============================================
+// Send Opportunity Assigned Email
+// ============================================
+interface SendOpportunityAssignedEmailParams {
   to: string;
   assigneeName: string;
   assignerName: string;
-  dealTitle: string;
-  dealValue?: string;
+  opportunityTitle: string;
+  opportunityValue?: string;
   stageName: string;
   contactName?: string;
-  dealUrl: string;
+  opportunityUrl: string;
   orgName: string;
   orgId: number;
   workspaceId: number;
-  dealId: number;
+  opportunityId: number;
 }
 
-export async function sendDealAssignedEmail(params: SendDealAssignedEmailParams) {
+export async function sendOpportunityAssignedEmail(params: SendOpportunityAssignedEmailParams) {
   return sendEmail({
     to: params.to,
-    subject: `New deal assigned: ${params.dealTitle}`,
-    templateName: "deal_assigned",
-    template: React.createElement(DealAssignedEmail, {
+    subject: `New opportunity assigned: ${params.opportunityTitle}`,
+    templateName: "opportunity_assigned",
+    template: React.createElement(OpportunityAssignedEmail, {
       assigneeName: params.assigneeName,
       assignerName: params.assignerName,
-      dealTitle: params.dealTitle,
-      dealValue: params.dealValue,
+      opportunityTitle: params.opportunityTitle,
+      opportunityValue: params.opportunityValue,
       stageName: params.stageName,
       contactName: params.contactName,
-      dealUrl: params.dealUrl,
+      opportunityUrl: params.opportunityUrl,
       orgName: params.orgName,
     }),
     context: {
@@ -76,13 +109,13 @@ export async function sendDealAssignedEmail(params: SendDealAssignedEmailParams)
       workspaceId: params.workspaceId,
     },
     relatedEntity: {
-      type: "deal",
-      id: params.dealId,
+      type: "opportunity",
+      id: params.opportunityId,
     },
     metadata: {
       assignerName: params.assignerName,
-      dealTitle: params.dealTitle,
-      dealValue: params.dealValue,
+      opportunityTitle: params.opportunityTitle,
+      opportunityValue: params.opportunityValue,
     },
   });
 }
