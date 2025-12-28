@@ -82,6 +82,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Logo upload failed:", error);
+
+    // Check for common errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes("BLOB_READ_WRITE_TOKEN") || errorMessage.includes("No token")) {
+      return NextResponse.json(
+        { error: "Blob storage is niet geconfigureerd. Voeg BLOB_READ_WRITE_TOKEN toe aan environment." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Upload mislukt. Probeer het opnieuw." },
       { status: 500 }
