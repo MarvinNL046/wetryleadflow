@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BarChart3, Search, Linkedin, Music2, Pin, Sparkles, Clock, Calendar, Megaphone, ArrowRight } from "lucide-react";
+import { ArrowLeft, BarChart3, Search, Linkedin, Music2, Pin, Sparkles, Clock, Calendar, Megaphone, ArrowRight, AlertTriangle, Activity, FlaskConical } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/context";
 import {
   getMetaConnectionStatus,
@@ -134,6 +134,62 @@ export default async function IntegrationsPage() {
               </div>
               <ArrowRight className="h-5 w-5 text-zinc-400" />
             </Link>
+          )}
+
+          {/* Quick Actions for Connected Users */}
+          {metaStatus.connected && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <Link
+                href="/crm/settings/integrations/meta/health"
+                className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-green-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-green-700"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-900 dark:text-white">
+                    Monitoring
+                  </h3>
+                  <p className="text-sm text-zinc-500">
+                    Webhook status
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/crm/settings/integrations/meta/failed-leads"
+                className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-900 dark:text-white">
+                    Mislukte Leads
+                  </h3>
+                  <p className="text-sm text-zinc-500">
+                    Bekijk & retry
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/crm/settings/integrations/meta/test"
+                className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-violet-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-violet-700"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                  <FlaskConical className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-900 dark:text-white">
+                    Test Tool
+                  </h3>
+                  <p className="text-sm text-zinc-500">
+                    Dry-run leads
+                  </p>
+                </div>
+              </Link>
+            </div>
           )}
         </section>
 
