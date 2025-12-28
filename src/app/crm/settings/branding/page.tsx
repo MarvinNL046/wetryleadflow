@@ -115,22 +115,30 @@ function DocumentPreview({
   logo,
   appName,
   primaryColor,
+  scale = 70,
 }: {
   type: "invoice" | "quotation";
   logo: string;
   appName: string;
   primaryColor: string;
+  scale?: number;
 }) {
   const isInvoice = type === "invoice";
+  // A4 at 72dpi = 595x842, we scale it
+  const baseWidth = 595;
+  const baseHeight = 842;
+  const scaledWidth = (baseWidth * scale) / 100;
+  const scaledHeight = (baseHeight * scale) / 100;
 
   return (
     <div
-      className="bg-white shadow-lg rounded-sm origin-top"
+      className="bg-white shadow-lg rounded-sm origin-top flex-shrink-0"
       style={{
-        width: "420px",
-        minHeight: "594px",
-        padding: "28px",
-        fontSize: "70%",
+        width: `${scaledWidth}px`,
+        minHeight: `${scaledHeight}px`,
+        padding: `${28 * scale / 100}px`,
+        fontSize: `${scale}%`,
+        transition: "all 0.2s ease",
       }}
     >
       {/* Header */}
@@ -243,6 +251,7 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [previewScale, setPreviewScale] = useState(70); // 50-100%
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -571,8 +580,8 @@ export default function BrandingPage() {
 
           {/* Documents Preview */}
           <TabsContent value="documents" className="flex-1 m-0 p-6 overflow-auto bg-zinc-100 dark:bg-zinc-900">
-            {/* Download button */}
-            <div className="mb-4 flex items-center gap-2">
+            {/* Controls */}
+            <div className="mb-4 flex items-center justify-between">
               <Button
                 variant="outline"
                 size="sm"
@@ -581,16 +590,31 @@ export default function BrandingPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
+
+              {/* Scale slider */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-500">Zoom:</span>
+                <input
+                  type="range"
+                  min="50"
+                  max="100"
+                  value={previewScale}
+                  onChange={(e) => setPreviewScale(Number(e.target.value))}
+                  className="w-32 h-1.5 bg-zinc-300 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                />
+                <span className="text-xs text-zinc-600 w-8">{previewScale}%</span>
+              </div>
             </div>
 
             {/* Two documents side by side (like Moneybird) */}
-            <div className="flex gap-6 justify-center">
+            <div className="flex gap-6 justify-center overflow-x-auto pb-4">
               {/* Invoice Preview */}
               <DocumentPreview
                 type="invoice"
                 logo={branding.companyLogo}
                 appName={branding.brandingAppName}
                 primaryColor={effectiveColor}
+                scale={previewScale}
               />
 
               {/* Quotation Preview */}
@@ -599,6 +623,7 @@ export default function BrandingPage() {
                 logo={branding.companyLogo}
                 appName={branding.brandingAppName}
                 primaryColor={effectiveColor}
+                scale={previewScale}
               />
             </div>
           </TabsContent>
