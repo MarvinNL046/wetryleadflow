@@ -161,6 +161,10 @@ export async function updateInvoiceSettings(data: {
   defaultFooter?: string;
   enableReminders?: boolean;
   reminderDays?: number[];
+  // Branding fields
+  brandingAppName?: string;
+  brandingPrimaryColor?: string;
+  brandingSecondaryColor?: string;
 }) {
   const ctx = await requireAuthContext();
 
@@ -178,7 +182,91 @@ export async function updateInvoiceSettings(data: {
     .returning();
 
   revalidatePath("/crm/invoicing/settings");
+  revalidatePath("/crm/settings/branding");
   return settings;
+}
+
+// ============================================
+// Workspace Branding Actions
+// ============================================
+
+export async function updateWorkspaceBranding(data: {
+  companyLogo?: string | null;
+  brandingAppName?: string | null;
+  brandingPrimaryColor?: string | null;
+  brandingSecondaryColor?: string | null;
+}) {
+  const ctx = await requireAuthContext();
+
+  // Ensure settings exist
+  let settings = await db.query.invoiceSettings.findFirst({
+    where: eq(invoiceSettings.workspaceId, ctx.workspace.id),
+  });
+
+  if (!settings) {
+    [settings] = await db
+      .insert(invoiceSettings)
+      .values({
+        workspaceId: ctx.workspace.id,
+      })
+      .returning();
+  }
+
+  // Update branding fields
+  const [updated] = await db
+    .update(invoiceSettings)
+    .set({
+      companyLogo: data.companyLogo !== undefined ? data.companyLogo : settings.companyLogo,
+      brandingAppName: data.brandingAppName !== undefined ? data.brandingAppName : settings.brandingAppName,
+      brandingPrimaryColor: data.brandingPrimaryColor !== undefined ? data.brandingPrimaryColor : settings.brandingPrimaryColor,
+      brandingSecondaryColor: data.brandingSecondaryColor !== undefined ? data.brandingSecondaryColor : settings.brandingSecondaryColor,
+      updatedAt: new Date(),
+    })
+    .where(eq(invoiceSettings.workspaceId, ctx.workspace.id))
+    .returning();
+
+  revalidatePath("/crm/settings/branding");
+  revalidatePath("/crm/invoicing/settings");
+  return { success: true, settings: updated };
+}
+
+export async function getWorkspaceBranding() {
+  const ctx = await requireAuthContext();
+
+  // Get invoice settings for workspace branding
+  const settings = await db.query.invoiceSettings.findFirst({
+    where: eq(invoiceSettings.workspaceId, ctx.workspace.id),
+  });
+
+  // Check if workspace is under an agency
+  const isAgencyClient = !!ctx.org.agencyId;
+  let agencyBranding = null;
+
+  if (isAgencyClient && ctx.org.agencyId) {
+    const agency = await db.query.agencies.findFirst({
+      where: (agencies, { eq }) => eq(agencies.id, ctx.org.agencyId!),
+    });
+    if (agency) {
+      agencyBranding = {
+        name: agency.name,
+        appName: agency.appName,
+        logoUrl: agency.logoUrl,
+        primaryColor: agency.primaryColor,
+        secondaryColor: agency.secondaryColor,
+      };
+    }
+  }
+
+  return {
+    // Workspace branding (editable)
+    companyLogo: settings?.companyLogo || null,
+    brandingAppName: settings?.brandingAppName || null,
+    brandingPrimaryColor: settings?.brandingPrimaryColor || null,
+    brandingSecondaryColor: settings?.brandingSecondaryColor || null,
+    // Agency info (for display)
+    isAgencyClient,
+    agencyBranding,
+  };
 }
 
 async function getNextQuotationNumber(workspaceId: number): Promise<string> {

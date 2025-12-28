@@ -1616,6 +1616,10 @@ export const invoiceSettings = pgTable("invoice_settings", {
   companyPhone: varchar("company_phone", { length: 50 }),
   companyWebsite: varchar("company_website", { length: 255 }),
   companyLogo: varchar("company_logo", { length: 500 }),
+  // Branding (for emails and PDFs)
+  brandingAppName: varchar("branding_app_name", { length: 100 }),
+  brandingPrimaryColor: varchar("branding_primary_color", { length: 7 }),
+  brandingSecondaryColor: varchar("branding_secondary_color", { length: 7 }),
   // Business info
   kvkNumber: varchar("kvk_number", { length: 20 }), // KVK
   vatNumber: varchar("vat_number", { length: 30 }), // BTW

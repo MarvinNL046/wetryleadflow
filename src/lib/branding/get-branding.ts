@@ -12,7 +12,7 @@ const LEADFLOW_DEFAULTS = {
   secondaryColor: "#3b82f6", // Blue - accent color
 } as const;
 
-// Document-specific accent colors (used when no agency branding)
+// Document-specific accent colors (used when no custom branding)
 export const DOCUMENT_COLORS = {
   invoice: "#7c3aed", // Purple for invoices
   quotation: "#2563eb", // Blue for quotations
@@ -66,6 +66,7 @@ export interface EmailBranding {
 // ============================================
 // Get Document Branding for PDFs
 // ============================================
+// Priority: Workspace branding → Agency branding → LeadFlow defaults
 export async function getDocumentBranding(
   workspaceId: number,
   documentType: DocumentType = "invoice"
@@ -83,13 +84,18 @@ export async function getDocumentBranding(
       agencyPrimaryColor: agencies.primaryColor,
       agencySecondaryColor: agencies.secondaryColor,
       agencyAppName: agencies.appName,
-      // Invoice settings
+      // Invoice settings (includes workspace branding)
       companyName: invoiceSettings.companyName,
       companyAddress: invoiceSettings.companyAddress,
       companyEmail: invoiceSettings.companyEmail,
       companyPhone: invoiceSettings.companyPhone,
       companyWebsite: invoiceSettings.companyWebsite,
       companyLogo: invoiceSettings.companyLogo,
+      // Workspace-level branding
+      brandingAppName: invoiceSettings.brandingAppName,
+      brandingPrimaryColor: invoiceSettings.brandingPrimaryColor,
+      brandingSecondaryColor: invoiceSettings.brandingSecondaryColor,
+      // Other settings
       kvkNumber: invoiceSettings.kvkNumber,
       vatNumber: invoiceSettings.vatNumber,
       iban: invoiceSettings.iban,
@@ -130,26 +136,43 @@ export async function getDocumentBranding(
     };
   }
 
-  // Determine branding source: agency branding > invoiceSettings > defaults
+  // Check branding sources (priority: workspace > agency > default)
+  const hasWorkspaceBranding = (
+    data.brandingAppName ||
+    data.brandingPrimaryColor ||
+    data.companyLogo
+  );
+
   const hasAgencyBranding = data.agencyId && (
     data.agencyLogoUrl ||
     data.agencyPrimaryColor ||
     data.agencyAppName
   );
 
-  // Logo priority: agency logo > invoiceSettings.companyLogo
-  const logoUrl = data.agencyLogoUrl || data.companyLogo || null;
+  // Logo priority: workspace logo > agency logo
+  const logoUrl = data.companyLogo || data.agencyLogoUrl || null;
 
-  // Primary color priority: agency color > document-specific default
-  const primaryColor = data.agencyPrimaryColor || DOCUMENT_COLORS[documentType];
+  // Primary color priority: workspace > agency > document-specific default
+  const primaryColor =
+    data.brandingPrimaryColor ||
+    data.agencyPrimaryColor ||
+    DOCUMENT_COLORS[documentType];
 
-  // Secondary color priority: agency color > default
-  const secondaryColor = data.agencySecondaryColor || LEADFLOW_DEFAULTS.secondaryColor;
+  // Secondary color priority: workspace > agency > default
+  const secondaryColor =
+    data.brandingSecondaryColor ||
+    data.agencySecondaryColor ||
+    LEADFLOW_DEFAULTS.secondaryColor;
 
-  // App name priority: agency name > LeadFlow
-  const appName = data.agencyAppName || LEADFLOW_DEFAULTS.appName;
+  // App name priority: workspace > agency > LeadFlow
+  const appName =
+    data.brandingAppName ||
+    data.agencyAppName ||
+    LEADFLOW_DEFAULTS.appName;
 
-  if (hasAgencyBranding) {
+  if (hasWorkspaceBranding) {
+    console.log(`[Branding] Using workspace branding for workspace ${workspaceId}`);
+  } else if (hasAgencyBranding) {
     console.log(`[Branding] Using agency branding for workspace ${workspaceId}`);
   }
 
@@ -176,8 +199,9 @@ export async function getDocumentBranding(
 // ============================================
 // Get Email Branding
 // ============================================
+// Priority: Workspace branding → Agency branding → LeadFlow defaults
 export async function getEmailBranding(workspaceId: number): Promise<EmailBranding> {
-  // Fetch workspace → org → agency relationship
+  // Fetch workspace → org → agency relationship with invoice settings
   const result = await db
     .select({
       // Agency branding (if exists)
@@ -185,16 +209,22 @@ export async function getEmailBranding(workspaceId: number): Promise<EmailBrandi
       agencyPrimaryColor: agencies.primaryColor,
       agencySecondaryColor: agencies.secondaryColor,
       agencyAppName: agencies.appName,
+      // Workspace branding from invoice settings
+      companyLogo: invoiceSettings.companyLogo,
+      brandingAppName: invoiceSettings.brandingAppName,
+      brandingPrimaryColor: invoiceSettings.brandingPrimaryColor,
+      brandingSecondaryColor: invoiceSettings.brandingSecondaryColor,
     })
     .from(workspaces)
     .innerJoin(orgs, eq(workspaces.orgId, orgs.id))
     .leftJoin(agencies, eq(orgs.agencyId, agencies.id))
+    .leftJoin(invoiceSettings, eq(invoiceSettings.workspaceId, workspaces.id))
     .where(eq(workspaces.id, workspaceId))
     .limit(1);
 
   const data = result[0];
 
-  // Default FROM address (always LeadFlow domain - no custom domains per agency)
+  // Default FROM address (always LeadFlow domain - no custom domains)
   const fromEmail = process.env.EMAIL_FROM_ADDRESS || "noreply@wetryleadflow.com";
 
   if (!data) {
@@ -208,14 +238,17 @@ export async function getEmailBranding(workspaceId: number): Promise<EmailBrandi
     };
   }
 
-  // App name for FROM field: agency name > LeadFlow
-  const appName = data.agencyAppName || LEADFLOW_DEFAULTS.appName;
+  // Priority: workspace > agency > default
+  const logoUrl = data.companyLogo || data.agencyLogoUrl || null;
+  const primaryColor = data.brandingPrimaryColor || data.agencyPrimaryColor || LEADFLOW_DEFAULTS.primaryColor;
+  const secondaryColor = data.brandingSecondaryColor || data.agencySecondaryColor || LEADFLOW_DEFAULTS.secondaryColor;
+  const appName = data.brandingAppName || data.agencyAppName || LEADFLOW_DEFAULTS.appName;
 
   return {
     appName,
-    logoUrl: data.agencyLogoUrl || null,
-    primaryColor: data.agencyPrimaryColor || LEADFLOW_DEFAULTS.primaryColor,
-    secondaryColor: data.agencySecondaryColor || LEADFLOW_DEFAULTS.secondaryColor,
+    logoUrl,
+    primaryColor,
+    secondaryColor,
     fromName: appName,
     fromEmail,
   };

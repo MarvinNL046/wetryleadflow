@@ -1,39 +1,52 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Palette, Image, Eye, Lock, Building2, ExternalLink } from "lucide-react";
+import { Palette, Image, Eye, Save, RotateCcw, Type, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { getWorkspaceBranding, updateWorkspaceBranding } from "@/lib/actions/invoicing";
 
-interface BrandingInfo {
-  // Source info
-  isAgencyClient: boolean;
-  agencyName: string | null;
-  // Branding values
-  appName: string;
-  logoUrl: string | null;
-  primaryColor: string;
-  secondaryColor: string;
-  // Company info (for standalone)
-  companyName: string | null;
-  companyLogo: string | null;
+interface BrandingData {
+  companyLogo: string;
+  brandingAppName: string;
+  brandingPrimaryColor: string;
+  brandingSecondaryColor: string;
 }
 
-const defaultBranding: BrandingInfo = {
-  isAgencyClient: false,
-  agencyName: null,
-  appName: "LeadFlow",
-  logoUrl: null,
+interface AgencyBranding {
+  name: string;
+  appName: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+}
+
+const defaultColors = {
   primaryColor: "#8b5cf6",
   secondaryColor: "#3b82f6",
-  companyName: null,
-  companyLogo: null,
 };
 
 export default function WorkspaceBrandingPage() {
-  const [branding, setBranding] = useState<BrandingInfo>(defaultBranding);
+  const [branding, setBranding] = useState<BrandingData>({
+    companyLogo: "",
+    brandingAppName: "",
+    brandingPrimaryColor: "",
+    brandingSecondaryColor: "",
+  });
+  const [originalBranding, setOriginalBranding] = useState<BrandingData>({
+    companyLogo: "",
+    brandingAppName: "",
+    brandingPrimaryColor: "",
+    brandingSecondaryColor: "",
+  });
+  const [isAgencyClient, setIsAgencyClient] = useState(false);
+  const [agencyBranding, setAgencyBranding] = useState<AgencyBranding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     loadBranding();
@@ -41,17 +54,63 @@ export default function WorkspaceBrandingPage() {
 
   async function loadBranding() {
     try {
-      const response = await fetch("/api/settings/branding");
-      if (response.ok) {
-        const data = await response.json();
-        setBranding(data);
-      }
+      const data = await getWorkspaceBranding();
+      const brandingData: BrandingData = {
+        companyLogo: data.companyLogo || "",
+        brandingAppName: data.brandingAppName || "",
+        brandingPrimaryColor: data.brandingPrimaryColor || "",
+        brandingSecondaryColor: data.brandingSecondaryColor || "",
+      };
+      setBranding(brandingData);
+      setOriginalBranding(brandingData);
+      setIsAgencyClient(data.isAgencyClient);
+      setAgencyBranding(data.agencyBranding);
     } catch (error) {
       console.error("Failed to load branding:", error);
     } finally {
       setIsLoading(false);
     }
   }
+
+  async function handleSave() {
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      const result = await updateWorkspaceBranding({
+        companyLogo: branding.companyLogo || null,
+        brandingAppName: branding.brandingAppName || null,
+        brandingPrimaryColor: branding.brandingPrimaryColor || null,
+        brandingSecondaryColor: branding.brandingSecondaryColor || null,
+      });
+
+      if (result.success) {
+        setMessage({ type: "success", text: "Branding opgeslagen!" });
+        setOriginalBranding(branding);
+      } else {
+        setMessage({ type: "error", text: "Opslaan mislukt." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Er is een fout opgetreden." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleReset() {
+    setBranding(originalBranding);
+    setMessage(null);
+  }
+
+  const hasChanges = JSON.stringify(branding) !== JSON.stringify(originalBranding);
+
+  // Calculate effective branding (what will actually be shown)
+  const effectiveBranding = {
+    appName: branding.brandingAppName || agencyBranding?.appName || "LeadFlow",
+    logoUrl: branding.companyLogo || agencyBranding?.logoUrl || null,
+    primaryColor: branding.brandingPrimaryColor || agencyBranding?.primaryColor || defaultColors.primaryColor,
+    secondaryColor: branding.brandingSecondaryColor || agencyBranding?.secondaryColor || defaultColors.secondaryColor,
+  };
 
   if (isLoading) {
     return (
@@ -70,12 +129,12 @@ export default function WorkspaceBrandingPage() {
             <div>
               <h1 className="text-2xl font-bold">Branding</h1>
               <p className="mt-1 text-zinc-500">
-                Bekijk de branding voor je documenten en emails
+                Pas je logo en kleuren aan voor emails en facturen
               </p>
             </div>
             <Button variant="outline" asChild>
               <Link href="/crm/settings">
-                ← Terug naar Instellingen
+                ← Terug
               </Link>
             </Button>
           </div>
@@ -83,145 +142,185 @@ export default function WorkspaceBrandingPage() {
       </div>
 
       <div className="mx-auto max-w-4xl p-8">
-        {/* Agency Client Notice */}
-        {branding.isAgencyClient && (
-          <div className="mb-8 rounded-lg border border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 p-6 dark:border-violet-800 dark:from-violet-950/50 dark:to-purple-950/50">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 text-white">
-                <Lock className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">Branding beheerd door {branding.agencyName}</h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  Je branding wordt centraal beheerd door je agency partner.
-                  Neem contact met hen op als je wijzigingen wilt doorvoeren.
+        {/* Agency Fallback Notice */}
+        {isAgencyClient && agencyBranding && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Tip:</strong> Je kunt je eigen branding instellen. Als je velden leeg laat,
+                  wordt de branding van <strong>{agencyBranding.name}</strong> gebruikt.
                 </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Standalone Notice */}
-        {!branding.isAgencyClient && (
-          <div className="mb-8 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-6 dark:border-blue-800 dark:from-blue-950/50 dark:to-cyan-950/50">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
-                <Building2 className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">LeadFlow Branding</h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  Je documenten en emails gebruiken de standaard LeadFlow branding.
-                  Je bedrijfslogo uit de factuurinstellingen wordt wel gebruikt op documenten.
-                </p>
-                <Button variant="outline" size="sm" className="mt-3" asChild>
-                  <Link href="/crm/invoicing/settings">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Factuurinstellingen
-                  </Link>
-                </Button>
               </div>
             </div>
           </div>
         )}
 
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Current Branding */}
+          {/* Settings */}
           <div className="space-y-6">
             {/* App Name */}
-            <Card className="border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Building2 className="h-5 w-5 text-violet-500" />
+                  <Type className="h-5 w-5 text-violet-500" />
                   App Naam
                 </CardTitle>
                 <CardDescription>
-                  Naam weergegeven in emails en documenten
+                  Naam in emails en documenten (bijv. je bedrijfsnaam)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800">
-                  <span className="font-medium">{branding.appName}</span>
+                <div className="space-y-2">
+                  <Label htmlFor="appName">Weergavenaam</Label>
+                  <Input
+                    id="appName"
+                    placeholder={agencyBranding?.appName || "LeadFlow"}
+                    value={branding.brandingAppName}
+                    onChange={(e) => setBranding({ ...branding, brandingAppName: e.target.value })}
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Leeg = {agencyBranding?.appName ? `"${agencyBranding.appName}" (van agency)` : '"LeadFlow"'}
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Logo */}
-            <Card className="border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Image className="h-5 w-5 text-violet-500" />
                   Logo
                 </CardTitle>
                 <CardDescription>
-                  Logo voor sidebar, emails en documenten
+                  Je logo voor emails en PDF documenten
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {branding.logoUrl || branding.companyLogo ? (
-                  <div className="flex items-center gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-                    <img
-                      src={branding.logoUrl || branding.companyLogo || ""}
-                      alt="Logo"
-                      className="h-12 max-w-[120px] object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logoUrl">Logo URL</Label>
+                    <Input
+                      id="logoUrl"
+                      type="url"
+                      placeholder="https://jouwsite.nl/logo.png"
+                      value={branding.companyLogo}
+                      onChange={(e) => setBranding({ ...branding, companyLogo: e.target.value })}
                     />
-                    <span className="text-sm text-zinc-500">Huidige logo</span>
                   </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center dark:border-zinc-700 dark:bg-zinc-800">
-                    <Image className="mx-auto h-8 w-8 text-zinc-400" />
-                    <p className="mt-2 text-sm text-zinc-500">Geen logo ingesteld</p>
-                  </div>
-                )}
+                  {branding.companyLogo && (
+                    <div className="flex items-center gap-3 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
+                      <img
+                        src={branding.companyLogo}
+                        alt="Logo preview"
+                        className="h-10 max-w-[120px] object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Preview</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
             {/* Colors */}
-            <Card className="border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Palette className="h-5 w-5 text-violet-500" />
                   Kleuren
                 </CardTitle>
                 <CardDescription>
-                  Kleuren gebruikt in emails en documenten
+                  Kleuren voor buttons, links en accenten
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm text-zinc-500">Primaire kleur</label>
-                    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
-                      <div
-                        className="h-6 w-6 rounded border border-zinc-300"
-                        style={{ backgroundColor: branding.primaryColor }}
+                    <Label htmlFor="primaryColor">Primaire kleur</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        id="primaryColor"
+                        value={branding.brandingPrimaryColor || defaultColors.primaryColor}
+                        onChange={(e) => setBranding({ ...branding, brandingPrimaryColor: e.target.value })}
+                        className="h-10 w-14 cursor-pointer rounded border border-zinc-300 dark:border-zinc-700"
                       />
-                      <span className="font-mono text-sm">{branding.primaryColor}</span>
+                      <Input
+                        value={branding.brandingPrimaryColor}
+                        onChange={(e) => setBranding({ ...branding, brandingPrimaryColor: e.target.value })}
+                        placeholder={agencyBranding?.primaryColor || defaultColors.primaryColor}
+                        className="flex-1"
+                        maxLength={7}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-zinc-500">Secundaire kleur</label>
-                    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800">
-                      <div
-                        className="h-6 w-6 rounded border border-zinc-300"
-                        style={{ backgroundColor: branding.secondaryColor }}
+                    <Label htmlFor="secondaryColor">Secundaire kleur</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        id="secondaryColor"
+                        value={branding.brandingSecondaryColor || defaultColors.secondaryColor}
+                        onChange={(e) => setBranding({ ...branding, brandingSecondaryColor: e.target.value })}
+                        className="h-10 w-14 cursor-pointer rounded border border-zinc-300 dark:border-zinc-700"
                       />
-                      <span className="font-mono text-sm">{branding.secondaryColor}</span>
+                      <Input
+                        value={branding.brandingSecondaryColor}
+                        onChange={(e) => setBranding({ ...branding, brandingSecondaryColor: e.target.value })}
+                        placeholder={agencyBranding?.secondaryColor || defaultColors.secondaryColor}
+                        className="flex-1"
+                        maxLength={7}
+                      />
                     </div>
                   </div>
                 </div>
+                <p className="mt-3 text-xs text-zinc-500">
+                  Leeg laten = standaard kleuren gebruiken
+                </p>
               </CardContent>
             </Card>
+
+            {/* Actions */}
+            {message && (
+              <div
+                className={`rounded-lg p-3 text-sm ${
+                  message.type === "success"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving}
+                className="bg-gradient-to-r from-violet-600 to-purple-600"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? "Opslaan..." : "Opslaan"}
+              </Button>
+              {hasChanges && (
+                <Button variant="outline" onClick={handleReset}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Preview */}
           <div className="space-y-4">
             <h3 className="flex items-center gap-2 text-lg font-semibold">
               <Eye className="h-5 w-5 text-violet-500" />
-              Preview
+              Live Preview
             </h3>
 
             {/* Email Preview */}
@@ -233,9 +332,9 @@ export default function WorkspaceBrandingPage() {
                 <div className="bg-white p-6 dark:bg-zinc-900">
                   {/* Email Header */}
                   <div className="mb-4 flex items-center gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
-                    {(branding.logoUrl || branding.companyLogo) ? (
+                    {effectiveBranding.logoUrl ? (
                       <img
-                        src={branding.logoUrl || branding.companyLogo || ""}
+                        src={effectiveBranding.logoUrl}
                         alt="Logo"
                         className="h-8 max-w-[100px] object-contain"
                         onError={(e) => {
@@ -245,9 +344,9 @@ export default function WorkspaceBrandingPage() {
                     ) : (
                       <span
                         className="text-lg font-bold"
-                        style={{ color: branding.primaryColor }}
+                        style={{ color: effectiveBranding.primaryColor }}
                       >
-                        {branding.appName}
+                        {effectiveBranding.appName}
                       </span>
                     )}
                   </div>
@@ -256,7 +355,7 @@ export default function WorkspaceBrandingPage() {
                   <div className="mb-3 text-center">
                     <span
                       className="inline-block rounded-full px-3 py-1 text-xs font-semibold text-white"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     >
                       FACTUUR
                     </span>
@@ -266,7 +365,7 @@ export default function WorkspaceBrandingPage() {
                   <div className="space-y-2 text-sm">
                     <p className="text-center font-semibold">Factuur #FAC-2024-001</p>
                     <p className="text-zinc-500">Beste klant,</p>
-                    <p className="text-zinc-500">Hierbij uw factuur...</p>
+                    <p className="text-zinc-500">Hierbij ontvangt u factuur...</p>
                   </div>
 
                   {/* Button */}
@@ -274,7 +373,7 @@ export default function WorkspaceBrandingPage() {
                     <button
                       className="rounded-lg px-6 py-2 text-sm font-medium text-white"
                       style={{
-                        background: `linear-gradient(135deg, ${branding.primaryColor} 0%, ${branding.secondaryColor} 100%)`,
+                        background: `linear-gradient(135deg, ${effectiveBranding.primaryColor} 0%, ${effectiveBranding.secondaryColor} 100%)`,
                       }}
                     >
                       Bekijk Factuur
@@ -283,14 +382,14 @@ export default function WorkspaceBrandingPage() {
 
                   {/* Footer */}
                   <p className="mt-6 text-center text-xs text-zinc-400">
-                    Deze e-mail is verzonden via {branding.appName}
+                    Deze e-mail is verzonden via {effectiveBranding.appName}
                   </p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Color Palette */}
-            <Card className="border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Kleurenpalet</CardTitle>
               </CardHeader>
@@ -299,14 +398,14 @@ export default function WorkspaceBrandingPage() {
                   <div className="flex-1 space-y-1">
                     <div
                       className="h-12 rounded-lg"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
                     <p className="text-center text-xs text-zinc-500">Primair</p>
                   </div>
                   <div className="flex-1 space-y-1">
                     <div
                       className="h-12 rounded-lg"
-                      style={{ backgroundColor: branding.secondaryColor }}
+                      style={{ backgroundColor: effectiveBranding.secondaryColor }}
                     />
                     <p className="text-center text-xs text-zinc-500">Secundair</p>
                   </div>
@@ -314,7 +413,7 @@ export default function WorkspaceBrandingPage() {
                     <div
                       className="h-12 rounded-lg"
                       style={{
-                        background: `linear-gradient(135deg, ${branding.primaryColor} 0%, ${branding.secondaryColor} 100%)`,
+                        background: `linear-gradient(135deg, ${effectiveBranding.primaryColor} 0%, ${effectiveBranding.secondaryColor} 100%)`,
                       }}
                     />
                     <p className="text-center text-xs text-zinc-500">Gradient</p>
@@ -324,7 +423,7 @@ export default function WorkspaceBrandingPage() {
             </Card>
 
             {/* Where branding is used */}
-            <Card className="border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Waar wordt dit gebruikt?</CardTitle>
               </CardHeader>
@@ -333,51 +432,37 @@ export default function WorkspaceBrandingPage() {
                   <li className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
                     Factuur PDFs
                   </li>
                   <li className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
                     Offerte PDFs
                   </li>
                   <li className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
                     Credit Note PDFs
                   </li>
                   <li className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
-                    Factuur emails
+                    Factuur & Offerte emails
                   </li>
                   <li className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
+                      style={{ backgroundColor: effectiveBranding.primaryColor }}
                     />
-                    Offerte emails
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
-                    />
-                    Welkom emails
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: branding.primaryColor }}
-                    />
-                    Lead notificatie emails
+                    Welkom & Lead notificatie emails
                   </li>
                 </ul>
               </CardContent>
