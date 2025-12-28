@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Upload, Trash2, Image, Palette, FileText, Mail } from "lucide-react";
+import { ChevronLeft, Upload, Trash2, Image, Palette, FileText, Mail, Download, Type, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -109,6 +109,123 @@ async function resizeImage(
   });
 }
 
+// Document Preview Component (scaled down like Moneybird)
+function DocumentPreview({
+  type,
+  logo,
+  appName,
+  primaryColor,
+}: {
+  type: "invoice" | "quotation";
+  logo: string;
+  appName: string;
+  primaryColor: string;
+}) {
+  const isInvoice = type === "invoice";
+
+  return (
+    <div
+      className="bg-white shadow-lg rounded-sm origin-top"
+      style={{
+        width: "420px",
+        minHeight: "594px",
+        padding: "28px",
+        fontSize: "70%",
+      }}
+    >
+      {/* Header */}
+      <div className="flex justify-between mb-7">
+        <div className="max-w-[50%]">
+          {logo ? (
+            <img src={logo} alt="Logo" className="h-8 max-w-[100px] object-contain mb-1" />
+          ) : (
+            <div className="text-sm font-bold mb-1" style={{ color: primaryColor }}>
+              {appName || "Uw Bedrijfsnaam"}
+            </div>
+          )}
+          <div className="text-[9px] text-gray-500 leading-relaxed">
+            Voorbeeldstraat 123<br />
+            1234 AB Amsterdam<br />
+            info@uwbedrijf.nl
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-bold text-gray-800 mb-1">
+            {isInvoice ? "Factuur" : "Offerte"}
+          </div>
+          <div className="text-[10px] mb-0.5">
+            {isInvoice ? "FAC-2025-0001" : "OFF-2025-0001"}
+          </div>
+          <div className="text-[9px] text-gray-500">
+            {isInvoice ? "28-12-2025" : "28-12-2025"}
+          </div>
+        </div>
+      </div>
+
+      {/* Customer */}
+      <div className="mb-5 p-3 bg-gray-50 rounded">
+        <div className="text-[8px] text-gray-500 uppercase tracking-wide mb-0.5">
+          {isInvoice ? "Factuuradres" : "Offerte voor"}
+        </div>
+        <div className="text-[10px] font-bold">Voorbeeld BV</div>
+        <div className="text-[9px] text-gray-600">
+          Jan de Vries<br />
+          Klantstraat 456
+        </div>
+      </div>
+
+      {/* Table */}
+      <table className="w-full mb-4 text-[9px]">
+        <thead>
+          <tr className="border-b-2" style={{ borderColor: primaryColor }}>
+            <th className="text-left py-1.5 font-semibold">Omschrijving</th>
+            <th className="text-right py-1.5 font-semibold w-12">Bedrag</th>
+            <th className="text-right py-1.5 font-semibold w-14">Totaal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-gray-200">
+            <td className="py-1.5">Consultancy</td>
+            <td className="text-right py-1.5">€ 100,00</td>
+            <td className="text-right py-1.5">€ 1.000,00</td>
+          </tr>
+          <tr className="border-b border-gray-200">
+            <td className="py-1.5">Software licentie</td>
+            <td className="text-right py-1.5">€ 500,00</td>
+            <td className="text-right py-1.5">€ 500,00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Totals */}
+      <div className="flex justify-end mb-5">
+        <div className="w-36">
+          <div className="flex justify-between text-[9px] py-0.5">
+            <span className="text-gray-600">Subtotaal</span>
+            <span>€ 1.500,00</span>
+          </div>
+          <div className="flex justify-between text-[9px] py-0.5">
+            <span className="text-gray-600">21% BTW</span>
+            <span>€ 315,00</span>
+          </div>
+          <div
+            className="flex justify-between text-[10px] font-bold py-1.5 border-t-2 mt-0.5"
+            style={{ borderColor: primaryColor }}
+          >
+            <span>Totaal</span>
+            <span>€ 1.815,00</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-[8px] text-gray-500 border-t pt-3">
+        KVK: 12345678 | BTW: NL123456789B01
+      </div>
+    </div>
+  );
+}
+
 export default function BrandingPage() {
   const [branding, setBranding] = useState<BrandingData>({
     companyLogo: "",
@@ -126,8 +243,6 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [previewType, setPreviewType] = useState<"invoice" | "quotation">("invoice");
-  const [previewKey, setPreviewKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -167,8 +282,6 @@ export default function BrandingPage() {
       if (result.success) {
         setMessage({ type: "success", text: "Opgeslagen!" });
         setOriginalBranding(branding);
-        // Refresh preview
-        setPreviewKey((k) => k + 1);
       } else {
         setMessage({ type: "error", text: "Opslaan mislukt." });
       }
@@ -198,7 +311,6 @@ export default function BrandingPage() {
       if (response.ok && data.url) {
         setBranding((prev) => ({ ...prev, companyLogo: data.url }));
         setOriginalBranding((prev) => ({ ...prev, companyLogo: data.url }));
-        setPreviewKey((k) => k + 1);
         setMessage({
           type: "success",
           text: wasResized ? "Logo geüpload en verkleind!" : "Logo geüpload!",
@@ -220,7 +332,6 @@ export default function BrandingPage() {
       if (response.ok) {
         setBranding((prev) => ({ ...prev, companyLogo: "" }));
         setOriginalBranding((prev) => ({ ...prev, companyLogo: "" }));
-        setPreviewKey((k) => k + 1);
         setMessage({ type: "success", text: "Logo verwijderd!" });
       }
     } catch {
@@ -373,6 +484,36 @@ export default function BrandingPage() {
                 </div>
               </AccordionContent>
             </AccordionItem>
+
+            {/* Layout Section (placeholder) */}
+            <AccordionItem value="layout" className="border-b-0">
+              <AccordionTrigger className="px-2 py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4 text-zinc-500" />
+                  <span>Layout</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-2 pb-4">
+                <p className="text-sm text-zinc-500">
+                  Layout opties komen binnenkort...
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Font Section (placeholder) */}
+            <AccordionItem value="font" className="border-b-0">
+              <AccordionTrigger className="px-2 py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Type className="h-4 w-4 text-zinc-500" />
+                  <span>Lettertype</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-2 pb-4">
+                <p className="text-sm text-zinc-500">
+                  Lettertype opties komen binnenkort...
+                </p>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </div>
 
@@ -430,133 +571,35 @@ export default function BrandingPage() {
 
           {/* Documents Preview */}
           <TabsContent value="documents" className="flex-1 m-0 p-6 overflow-auto bg-zinc-100 dark:bg-zinc-900">
-            <div className="mb-4 flex gap-2">
+            {/* Download button */}
+            <div className="mb-4 flex items-center gap-2">
               <Button
-                variant={previewType === "invoice" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
-                onClick={() => setPreviewType("invoice")}
+                onClick={() => window.open("/api/invoicing/pdf/preview?type=invoice", "_blank")}
               >
-                Factuur
-              </Button>
-              <Button
-                variant={previewType === "quotation" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPreviewType("quotation")}
-              >
-                Offerte
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
               </Button>
             </div>
 
-            {/* HTML Preview (like Moneybird) */}
-            <div className="bg-white shadow-xl rounded-sm mx-auto" style={{ width: "595px", minHeight: "842px", padding: "40px" }}>
-              {/* Header */}
-              <div className="flex justify-between mb-10">
-                <div className="max-w-[50%]">
-                  {branding.companyLogo ? (
-                    <img src={branding.companyLogo} alt="Logo" className="h-12 max-w-[150px] object-contain mb-2" />
-                  ) : (
-                    <div className="text-lg font-bold mb-1" style={{ color: effectiveColor }}>
-                      {branding.brandingAppName || "Uw Bedrijfsnaam"}
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-500 leading-relaxed">
-                    Voorbeeldstraat 123<br />
-                    1234 AB Amsterdam<br />
-                    info@uwbedrijf.nl<br />
-                    06 12345678
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-800 mb-2">
-                    {previewType === "invoice" ? "Factuur" : "Offerte"}
-                  </div>
-                  <div className="text-sm mb-1">
-                    {previewType === "invoice" ? "FAC-2025-0001" : "OFF-2025-0001"}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Datum: 28-12-2025<br />
-                    {previewType === "invoice" ? "Vervaldatum: 11-01-2026" : "Geldig tot: 27-01-2026"}
-                  </div>
-                </div>
-              </div>
+            {/* Two documents side by side (like Moneybird) */}
+            <div className="flex gap-6 justify-center">
+              {/* Invoice Preview */}
+              <DocumentPreview
+                type="invoice"
+                logo={branding.companyLogo}
+                appName={branding.brandingAppName}
+                primaryColor={effectiveColor}
+              />
 
-              {/* Customer */}
-              <div className="mb-8 p-4 bg-gray-50 rounded">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">
-                  {previewType === "invoice" ? "Factuuradres" : "Offerte voor"}
-                </div>
-                <div className="text-sm font-bold mb-1">Voorbeeld BV</div>
-                <div className="text-xs text-gray-600">
-                  Jan de Vries<br />
-                  Klantstraat 456<br />
-                  5678 CD Rotterdam
-                </div>
-              </div>
-
-              {/* Reference */}
-              <div className="mb-4 text-xs text-gray-600">
-                <span className="font-medium">Kenmerk:</span> Website redesign project
-              </div>
-
-              {/* Table */}
-              <table className="w-full mb-6 text-xs">
-                <thead>
-                  <tr className="border-b-2" style={{ borderColor: effectiveColor }}>
-                    <th className="text-left py-2 font-semibold">Omschrijving</th>
-                    <th className="text-right py-2 font-semibold w-16">Aantal</th>
-                    <th className="text-right py-2 font-semibold w-20">Prijs</th>
-                    <th className="text-right py-2 font-semibold w-16">BTW</th>
-                    <th className="text-right py-2 font-semibold w-24">Totaal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-gray-200">
-                    <td className="py-2">Consultancy diensten</td>
-                    <td className="text-right py-2">10</td>
-                    <td className="text-right py-2">€ 100,00</td>
-                    <td className="text-right py-2">21%</td>
-                    <td className="text-right py-2">€ 1.000,00</td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="py-2">Software licentie</td>
-                    <td className="text-right py-2">1</td>
-                    <td className="text-right py-2">€ 500,00</td>
-                    <td className="text-right py-2">21%</td>
-                    <td className="text-right py-2">€ 500,00</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Totals */}
-              <div className="flex justify-end mb-8">
-                <div className="w-48">
-                  <div className="flex justify-between text-xs py-1">
-                    <span className="text-gray-600">Subtotaal excl. BTW</span>
-                    <span>€ 1.500,00</span>
-                  </div>
-                  <div className="flex justify-between text-xs py-1">
-                    <span className="text-gray-600">21% BTW</span>
-                    <span>€ 315,00</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-bold py-2 border-t-2 mt-1" style={{ borderColor: effectiveColor }}>
-                    <span>Totaal</span>
-                    <span>€ 1.815,00</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer info */}
-              <div className="text-[10px] text-gray-500 border-t pt-4 mt-auto">
-                <div className="flex justify-between">
-                  <div>
-                    <span className="font-medium">KVK:</span> 12345678 |
-                    <span className="font-medium"> BTW:</span> NL123456789B01
-                  </div>
-                  <div>
-                    <span className="font-medium">IBAN:</span> NL00 BANK 0123 4567 89
-                  </div>
-                </div>
-              </div>
+              {/* Quotation Preview */}
+              <DocumentPreview
+                type="quotation"
+                logo={branding.companyLogo}
+                appName={branding.brandingAppName}
+                primaryColor={effectiveColor}
+              />
             </div>
           </TabsContent>
 
