@@ -29,6 +29,104 @@ const defaultColors = {
   secondaryColor: "#3b82f6",
 };
 
+// Auto-resize image to fit within max dimensions and file size
+async function resizeImage(
+  file: File,
+  maxWidth = 800,
+  maxHeight = 600,
+  maxSizeKB = 500
+): Promise<{ file: File; wasResized: boolean }> {
+  // SVG files don't need resizing
+  if (file.type === "image/svg+xml") {
+    return { file, wasResized: false };
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      // Check if resizing is needed
+      const needsResize =
+        img.width > maxWidth ||
+        img.height > maxHeight ||
+        file.size > maxSizeKB * 1024;
+
+      if (!needsResize) {
+        resolve({ file, wasResized: false });
+        return;
+      }
+
+      // Calculate new dimensions maintaining aspect ratio
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      if (height > maxHeight) {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+
+      // Create canvas and draw resized image
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+
+      // Use high-quality image smoothing
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try different quality levels to get under size limit
+      const tryQuality = (quality: number): void => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Failed to create blob"));
+              return;
+            }
+
+            // If still too large and quality can be reduced, try again
+            if (blob.size > maxSizeKB * 1024 && quality > 0.3) {
+              tryQuality(quality - 0.1);
+              return;
+            }
+
+            const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+              type: "image/jpeg",
+            });
+
+            resolve({ file: resizedFile, wasResized: true });
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      tryQuality(0.85);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load image"));
+    };
+
+    img.src = url;
+  });
+}
+
 export default function WorkspaceBrandingPage() {
   const [branding, setBranding] = useState<BrandingData>({
     companyLogo: "",
@@ -110,8 +208,12 @@ export default function WorkspaceBrandingPage() {
     setMessage(null);
 
     try {
+      // Auto-resize large images
+      const originalSize = file.size;
+      const { file: processedFile, wasResized } = await resizeImage(file);
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
 
       const response = await fetch("/api/upload/logo", {
         method: "POST",
@@ -123,7 +225,17 @@ export default function WorkspaceBrandingPage() {
       if (response.ok && data.url) {
         setBranding((prev) => ({ ...prev, companyLogo: data.url }));
         setOriginalBranding((prev) => ({ ...prev, companyLogo: data.url }));
-        setMessage({ type: "success", text: "Logo geüpload!" });
+
+        // Show resize info if applicable
+        if (wasResized) {
+          const savedKB = Math.round((originalSize - processedFile.size) / 1024);
+          setMessage({
+            type: "success",
+            text: `Logo geüpload! (automatisch verkleind, ${savedKB}KB bespaard)`,
+          });
+        } else {
+          setMessage({ type: "success", text: "Logo geüpload!" });
+        }
       } else {
         setMessage({ type: "error", text: data.error || "Upload mislukt" });
       }
@@ -337,7 +449,7 @@ export default function WorkspaceBrandingPage() {
                           {" "}of sleep een bestand
                         </p>
                         <p className="mt-1 text-xs text-zinc-500">
-                          PNG, JPG, WebP of SVG (max 2MB)
+                          PNG, JPG, WebP of SVG • Grote afbeeldingen worden automatisch verkleind
                         </p>
                       </>
                     )}

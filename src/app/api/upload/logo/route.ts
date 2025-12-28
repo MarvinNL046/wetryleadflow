@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    // Validate file size (max 10MB - client auto-resizes, but allow larger originals)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "Bestand is te groot. Maximum is 2MB." },
+        { error: "Bestand is te groot. Maximum is 10MB." },
         { status: 400 }
       );
     }
