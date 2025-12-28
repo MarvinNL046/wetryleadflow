@@ -141,7 +141,7 @@ async function resizeImage(
 function DocumentPreview({
   type,
   branding,
-  scale = 80,
+  scale = 100,
 }: {
   type: "invoice" | "quotation";
   branding: BrandingData;
@@ -150,26 +150,32 @@ function DocumentPreview({
   const isInvoice = type === "invoice";
   const primaryColor = branding.brandingPrimaryColor || defaultColors.primaryColor;
 
-  // A4 at 72dpi = 595x842, we scale it
-  const baseWidth = 595;
-  const baseHeight = 842;
-  const scaledWidth = (baseWidth * scale) / 100;
-  const scaledHeight = (baseHeight * scale) / 100;
+  // A4 dimensions at base scale
+  const baseWidth = 500;
+  const baseHeight = 707;
 
   // Format address with line breaks
   const addressLines = (branding.companyAddress || "Straat 123\n1234 AB Stad").split("\n");
 
   return (
     <div
-      className="bg-white shadow-xl rounded origin-top flex-shrink-0 border border-zinc-200"
+      className="origin-top flex-shrink-0"
       style={{
-        width: `${scaledWidth}px`,
-        minHeight: `${scaledHeight}px`,
-        padding: `${28 * scale / 100}px`,
-        fontSize: `${scale}%`,
+        width: `${baseWidth * scale / 100}px`,
+        height: `${baseHeight * scale / 100}px`,
         transition: "all 0.2s ease",
       }}
     >
+      <div
+        className="bg-white shadow-xl rounded border border-zinc-200 origin-top-left"
+        style={{
+          width: `${baseWidth}px`,
+          minHeight: `${baseHeight}px`,
+          padding: "24px",
+          transform: `scale(${scale / 100})`,
+          transition: "transform 0.2s ease",
+        }}
+      >
       {/* Header */}
       <div className="flex justify-between mb-6">
         <div className="max-w-[55%]">
@@ -331,6 +337,7 @@ function DocumentPreview({
         <div>
           {branding.companyWebsite}
         </div>
+      </div>
       </div>
     </div>
   );
