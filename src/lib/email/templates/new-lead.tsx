@@ -1,4 +1,6 @@
 import * as React from "react";
+import type { EmailBranding } from "@/lib/branding/get-branding";
+import { DEFAULT_EMAIL_BRANDING, getPoweredByText } from "../branded-styles";
 
 interface NewLeadEmailProps {
   recipientName: string;
@@ -14,6 +16,8 @@ interface NewLeadEmailProps {
   }>;
   leadUrl: string;
   workspaceName: string;
+  // Agency branding support
+  branding?: EmailBranding;
 }
 
 const sourceLabels: Record<string, string> = {
@@ -32,6 +36,15 @@ const sourceColors: Record<string, { bg: string; text: string }> = {
   website: { bg: "#e0e7ff", text: "#4338ca" },
 };
 
+// Helper function to convert hex to rgba
+function hexToRgba(hex: string, alpha: number): string {
+  const cleanHex = hex.replace("#", "");
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function NewLeadEmail({
   recipientName,
   leadName,
@@ -43,19 +56,33 @@ export function NewLeadEmail({
   customFields,
   leadUrl,
   workspaceName,
+  branding = DEFAULT_EMAIL_BRANDING,
 }: NewLeadEmailProps) {
   const sourceLabel = sourceLabels[leadSource] || leadSource;
   const sourceColor = sourceColors[leadSource] || { bg: "#f4f4f5", text: "#52525b" };
 
+  // Dynamic colors based on branding
+  const primaryColor = branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor;
+  const secondaryColor = branding.secondaryColor || DEFAULT_EMAIL_BRANDING.secondaryColor;
+
   return (
     <div style={container}>
       <div style={content}>
-        {/* Header */}
+        {/* Header - New Lead banner (always green for success/celebration) */}
         <div style={headerBanner}>
           <span style={newBadge}>NIEUWE LEAD</span>
         </div>
 
         <div style={mainContent}>
+          {/* Logo/Branding */}
+          <div style={logoSection}>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.appName} style={logoImage} />
+            ) : (
+              <span style={{ ...logoText, color: primaryColor }}>{branding.appName}</span>
+            )}
+          </div>
+
           <h1 style={heading}>
             🎉 Nieuwe lead binnengekomen!
           </h1>
@@ -71,7 +98,10 @@ export function NewLeadEmail({
           {/* Lead Card */}
           <div style={leadCard}>
             <div style={leadHeader}>
-              <div style={leadAvatar}>
+              <div style={{
+                ...leadAvatar,
+                background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+              }}>
                 {leadName.charAt(0).toUpperCase()}
               </div>
               <div>
@@ -90,7 +120,7 @@ export function NewLeadEmail({
               {leadEmail && (
                 <div style={detailRow}>
                   <span style={detailLabel}>Email</span>
-                  <a href={`mailto:${leadEmail}`} style={detailValue}>
+                  <a href={`mailto:${leadEmail}`} style={{ ...detailValue, color: primaryColor }}>
                     {leadEmail}
                   </a>
                 </div>
@@ -98,7 +128,7 @@ export function NewLeadEmail({
               {leadPhone && (
                 <div style={detailRow}>
                   <span style={detailLabel}>Telefoon</span>
-                  <a href={`tel:${leadPhone}`} style={detailValue}>
+                  <a href={`tel:${leadPhone}`} style={{ ...detailValue, color: primaryColor }}>
                     {leadPhone}
                   </a>
                 </div>
@@ -133,7 +163,11 @@ export function NewLeadEmail({
 
           {/* CTA */}
           <div style={buttonContainer}>
-            <a href={leadUrl} style={button}>
+            <a href={leadUrl} style={{
+              ...button,
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+              boxShadow: `0 4px 14px ${hexToRgba(primaryColor, 0.4)}`,
+            }}>
               Bekijk Lead in CRM
             </a>
           </div>
@@ -145,7 +179,7 @@ export function NewLeadEmail({
           <hr style={divider} />
 
           <p style={footer}>
-            LeadFlow - Lead Generation & CRM Platform
+            {getPoweredByText(branding)}
           </p>
         </div>
       </div>
@@ -185,6 +219,22 @@ const mainContent: React.CSSProperties = {
   padding: "32px 40px 40px",
 };
 
+const logoSection: React.CSSProperties = {
+  textAlign: "center",
+  marginBottom: "24px",
+};
+
+const logoImage: React.CSSProperties = {
+  maxWidth: "150px",
+  maxHeight: "50px",
+  objectFit: "contain",
+};
+
+const logoText: React.CSSProperties = {
+  fontSize: "24px",
+  fontWeight: "bold",
+};
+
 const heading: React.CSSProperties = {
   fontSize: "24px",
   fontWeight: "bold",
@@ -221,7 +271,6 @@ const leadAvatar: React.CSSProperties = {
   width: "48px",
   height: "48px",
   borderRadius: "50%",
-  background: "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
   color: "#ffffff",
   fontSize: "20px",
   fontWeight: "600",
@@ -267,7 +316,6 @@ const detailLabel: React.CSSProperties = {
 const detailValue: React.CSSProperties = {
   fontSize: "14px",
   fontWeight: "500",
-  color: "#8b5cf6",
   textDecoration: "none",
 };
 
@@ -298,7 +346,6 @@ const buttonContainer: React.CSSProperties = {
 };
 
 const button: React.CSSProperties = {
-  background: "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
   color: "#ffffff",
   padding: "14px 32px",
   borderRadius: "8px",

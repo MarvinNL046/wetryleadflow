@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { getQuotation, getInvoiceSettings } from "@/lib/actions/invoicing";
+import { getQuotation } from "@/lib/actions/invoicing";
+import { getDocumentBranding } from "@/lib/branding/get-branding";
 import { QuotationPDF } from "@/lib/pdf/quotation-template";
 
 export async function GET(
@@ -18,10 +19,7 @@ export async function GET(
       );
     }
 
-    const [quotation, settings] = await Promise.all([
-      getQuotation(quotationId),
-      getInvoiceSettings(),
-    ]);
+    const quotation = await getQuotation(quotationId);
 
     if (!quotation) {
       return NextResponse.json(
@@ -30,9 +28,12 @@ export async function GET(
       );
     }
 
+    // Get branding for this workspace (includes agency branding if applicable)
+    const branding = await getDocumentBranding(quotation.workspaceId, "quotation");
+
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      <QuotationPDF quotation={quotation as any} settings={settings} />
+      <QuotationPDF quotation={quotation as any} branding={branding} />
     );
 
     // Convert Buffer to Uint8Array for NextResponse

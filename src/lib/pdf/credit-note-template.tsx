@@ -5,9 +5,11 @@ import {
   View,
   StyleSheet,
   Font,
+  Image,
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
+import type { DocumentBranding } from "@/lib/branding/get-branding";
 
 // Register fonts (using default for now)
 Font.register({
@@ -18,6 +20,7 @@ Font.register({
   ],
 });
 
+// Static styles (colors are applied dynamically)
 const styles = StyleSheet.create({
   page: {
     padding: 40,
@@ -33,11 +36,19 @@ const styles = StyleSheet.create({
   companyInfo: {
     maxWidth: "50%",
   },
+  logoContainer: {
+    marginBottom: 8,
+  },
+  logo: {
+    width: 120,
+    maxHeight: 50,
+    objectFit: "contain",
+  },
   companyName: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
-    color: "#7c3aed",
+    // color applied dynamically
   },
   companyDetails: {
     fontSize: 9,
@@ -51,7 +62,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#dc2626",
+    color: "#dc2626", // Credit notes always use red for the title
   },
   creditNoteNumber: {
     fontSize: 11,
@@ -122,10 +133,10 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#dc2626",
     padding: 10,
     borderRadius: 4,
     marginBottom: 2,
+    // backgroundColor applied dynamically
   },
   tableHeaderText: {
     color: "white",
@@ -184,9 +195,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     marginTop: 4,
-    backgroundColor: "#dc2626",
     borderRadius: 4,
     paddingHorizontal: 10,
+    // backgroundColor applied dynamically
   },
   grandTotalLabel: {
     fontSize: 11,
@@ -294,28 +305,21 @@ interface CreditNoteData {
   }>;
 }
 
-interface InvoiceSettings {
-  companyName?: string | null;
-  companyAddress?: string | null;
-  companyEmail?: string | null;
-  companyPhone?: string | null;
-  companyWebsite?: string | null;
-  kvkNumber?: string | null;
-  vatNumber?: string | null;
-  iban?: string | null;
-  bic?: string | null;
-  defaultFooter?: string | null;
-}
-
 interface CreditNotePDFProps {
   creditNote: CreditNoteData;
-  settings: InvoiceSettings;
+  branding: DocumentBranding;
 }
 
-export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
+export function CreditNotePDF({ creditNote, branding }: CreditNotePDFProps) {
   const customerName =
     creditNote.contact?.company ||
     `${creditNote.contact?.firstName ?? ""} ${creditNote.contact?.lastName ?? ""}`.trim();
+
+  // Dynamic color from branding - for credit notes we use the primary color for company name
+  // but keep red (#dc2626) for the table header and totals since credit notes should clearly
+  // indicate they are credit/refund documents
+  const companyNameColor = branding.primaryColor;
+  const creditNoteColor = "#dc2626"; // Red for credit notes
 
   return (
     <Document>
@@ -323,14 +327,20 @@ export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>
-              {settings.companyName || "LeadFlow"}
+            {/* Logo */}
+            {branding.logoUrl && (
+              <View style={styles.logoContainer}>
+                <Image src={branding.logoUrl} style={styles.logo} />
+              </View>
+            )}
+            <Text style={[styles.companyName, { color: companyNameColor }]}>
+              {branding.companyName || branding.appName}
             </Text>
             <Text style={styles.companyDetails}>
-              {settings.companyAddress && `${settings.companyAddress}\n`}
-              {settings.companyEmail && `${settings.companyEmail}\n`}
-              {settings.companyPhone && `${settings.companyPhone}\n`}
-              {settings.companyWebsite && settings.companyWebsite}
+              {branding.companyAddress && `${branding.companyAddress}\n`}
+              {branding.companyEmail && `${branding.companyEmail}\n`}
+              {branding.companyPhone && `${branding.companyPhone}\n`}
+              {branding.companyWebsite && branding.companyWebsite}
             </Text>
           </View>
           <View style={styles.creditNoteInfo}>
@@ -378,7 +388,7 @@ export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
 
         {/* Line Items Table */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={[styles.tableHeader, { backgroundColor: creditNoteColor }]}>
             <Text style={[styles.tableHeaderText, styles.colDescription]}>
               Omschrijving
             </Text>
@@ -419,7 +429,7 @@ export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
               {formatCurrency(creditNote.taxAmount, creditNote.currency)}
             </Text>
           </View>
-          <View style={styles.grandTotalRow}>
+          <View style={[styles.grandTotalRow, { backgroundColor: creditNoteColor }]}>
             <Text style={styles.grandTotalLabel}>Te crediteren</Text>
             <Text style={styles.grandTotalValue}>
               {formatCurrency(creditNote.total, creditNote.currency)}
@@ -440,8 +450,8 @@ export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
             {creditNote.status === "refunded" && (
               `Dit bedrag is terugbetaald.\n\n`
             )}
-            {settings.iban && `Voor terugbetaling:\nIBAN: ${settings.iban}\n`}
-            {settings.bic && `BIC: ${settings.bic}\n`}
+            {branding.iban && `Voor terugbetaling:\nIBAN: ${branding.iban}\n`}
+            {branding.bic && `BIC: ${branding.bic}\n`}
             Referentie: {creditNote.creditNoteNumber}
           </Text>
         </View>
@@ -449,11 +459,11 @@ export function CreditNotePDF({ creditNote, settings }: CreditNotePDFProps) {
         {/* Footer */}
         <View style={styles.footer}>
           <Text>
-            {settings.companyName || "LeadFlow"}
-            {settings.kvkNumber && ` | KVK: ${settings.kvkNumber}`}
-            {settings.vatNumber && ` | BTW: ${settings.vatNumber}`}
+            {branding.companyName || branding.appName}
+            {branding.kvkNumber && ` | KVK: ${branding.kvkNumber}`}
+            {branding.vatNumber && ` | BTW: ${branding.vatNumber}`}
           </Text>
-          {settings.defaultFooter && <Text>{settings.defaultFooter}</Text>}
+          {branding.defaultFooter && <Text>{branding.defaultFooter}</Text>}
         </View>
       </Page>
     </Document>

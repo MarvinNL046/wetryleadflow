@@ -5,10 +5,22 @@ import {
   View,
   StyleSheet,
   Font,
+  Image,
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
+import type { DocumentBranding } from "@/lib/branding/get-branding";
 
+// Register fonts (using default for now)
+Font.register({
+  family: "Helvetica",
+  fonts: [
+    { src: "Helvetica" },
+    { src: "Helvetica-Bold", fontWeight: "bold" },
+  ],
+});
+
+// Static styles (colors are applied dynamically)
 const styles = StyleSheet.create({
   page: {
     padding: 40,
@@ -24,11 +36,19 @@ const styles = StyleSheet.create({
   companyInfo: {
     maxWidth: "50%",
   },
+  logoContainer: {
+    marginBottom: 8,
+  },
+  logo: {
+    width: 120,
+    maxHeight: 50,
+    objectFit: "contain",
+  },
   companyName: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
-    color: "#7c3aed",
+    // color applied dynamically
   },
   companyDetails: {
     fontSize: 9,
@@ -80,10 +100,10 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#2563eb",
     padding: 10,
     borderRadius: 4,
     marginBottom: 2,
+    // backgroundColor applied dynamically
   },
   tableHeaderText: {
     color: "white",
@@ -142,9 +162,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     marginTop: 4,
-    backgroundColor: "#2563eb",
     borderRadius: 4,
     paddingHorizontal: 10,
+    // backgroundColor applied dynamically
   },
   grandTotalLabel: {
     fontSize: 11,
@@ -244,26 +264,18 @@ interface QuotationData {
   }>;
 }
 
-interface QuotationSettings {
-  companyName?: string | null;
-  companyAddress?: string | null;
-  companyEmail?: string | null;
-  companyPhone?: string | null;
-  companyWebsite?: string | null;
-  kvkNumber?: string | null;
-  vatNumber?: string | null;
-  defaultFooter?: string | null;
-}
-
 interface QuotationPDFProps {
   quotation: QuotationData;
-  settings: QuotationSettings;
+  branding: DocumentBranding;
 }
 
-export function QuotationPDF({ quotation, settings }: QuotationPDFProps) {
+export function QuotationPDF({ quotation, branding }: QuotationPDFProps) {
   const customerName =
     quotation.contact?.company ||
     `${quotation.contact?.firstName ?? ""} ${quotation.contact?.lastName ?? ""}`.trim();
+
+  // Dynamic color from branding
+  const primaryColor = branding.primaryColor;
 
   return (
     <Document>
@@ -271,14 +283,20 @@ export function QuotationPDF({ quotation, settings }: QuotationPDFProps) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>
-              {settings.companyName || "LeadFlow"}
+            {/* Logo */}
+            {branding.logoUrl && (
+              <View style={styles.logoContainer}>
+                <Image src={branding.logoUrl} style={styles.logo} />
+              </View>
+            )}
+            <Text style={[styles.companyName, { color: primaryColor }]}>
+              {branding.companyName || branding.appName}
             </Text>
             <Text style={styles.companyDetails}>
-              {settings.companyAddress && `${settings.companyAddress}\n`}
-              {settings.companyEmail && `${settings.companyEmail}\n`}
-              {settings.companyPhone && `${settings.companyPhone}\n`}
-              {settings.companyWebsite && settings.companyWebsite}
+              {branding.companyAddress && `${branding.companyAddress}\n`}
+              {branding.companyEmail && `${branding.companyEmail}\n`}
+              {branding.companyPhone && `${branding.companyPhone}\n`}
+              {branding.companyWebsite && branding.companyWebsite}
             </Text>
           </View>
           <View style={styles.quotationInfo}>
@@ -324,7 +342,7 @@ export function QuotationPDF({ quotation, settings }: QuotationPDFProps) {
 
         {/* Line Items Table */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={[styles.tableHeader, { backgroundColor: primaryColor }]}>
             <Text style={[styles.tableHeaderText, styles.colDescription]}>
               Omschrijving
             </Text>
@@ -373,7 +391,7 @@ export function QuotationPDF({ quotation, settings }: QuotationPDFProps) {
               </Text>
             </View>
           )}
-          <View style={styles.grandTotalRow}>
+          <View style={[styles.grandTotalRow, { backgroundColor: primaryColor }]}>
             <Text style={styles.grandTotalLabel}>Totaal</Text>
             <Text style={styles.grandTotalValue}>
               {formatCurrency(quotation.total, quotation.currency)}
@@ -404,11 +422,11 @@ export function QuotationPDF({ quotation, settings }: QuotationPDFProps) {
         {/* Footer */}
         <View style={styles.footer}>
           <Text>
-            {settings.companyName || "LeadFlow"}
-            {settings.kvkNumber && ` | KVK: ${settings.kvkNumber}`}
-            {settings.vatNumber && ` | BTW: ${settings.vatNumber}`}
+            {branding.companyName || branding.appName}
+            {branding.kvkNumber && ` | KVK: ${branding.kvkNumber}`}
+            {branding.vatNumber && ` | BTW: ${branding.vatNumber}`}
           </Text>
-          {settings.defaultFooter && <Text>{settings.defaultFooter}</Text>}
+          {branding.defaultFooter && <Text>{branding.defaultFooter}</Text>}
         </View>
       </Page>
     </Document>

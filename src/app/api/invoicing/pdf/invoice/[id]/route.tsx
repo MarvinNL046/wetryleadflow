@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { getInvoice, getInvoiceSettings } from "@/lib/actions/invoicing";
+import { getInvoice } from "@/lib/actions/invoicing";
+import { getDocumentBranding } from "@/lib/branding/get-branding";
 import { InvoicePDF } from "@/lib/pdf/invoice-template";
 
 export async function GET(
@@ -18,10 +19,7 @@ export async function GET(
       );
     }
 
-    const [invoice, settings] = await Promise.all([
-      getInvoice(invoiceId),
-      getInvoiceSettings(),
-    ]);
+    const invoice = await getInvoice(invoiceId);
 
     if (!invoice) {
       return NextResponse.json(
@@ -30,9 +28,12 @@ export async function GET(
       );
     }
 
+    // Get branding for this workspace (includes agency branding if applicable)
+    const branding = await getDocumentBranding(invoice.workspaceId, "invoice");
+
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      <InvoicePDF invoice={invoice as any} settings={settings} />
+      <InvoicePDF invoice={invoice as any} branding={branding} />
     );
 
     // Convert Buffer to Uint8Array for NextResponse

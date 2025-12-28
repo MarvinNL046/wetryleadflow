@@ -1,65 +1,81 @@
 import * as React from "react";
+import type { EmailBranding } from "@/lib/branding/get-branding";
+import { createBrandedStyles, DEFAULT_EMAIL_BRANDING, getPoweredByText } from "../branded-styles";
 
 interface WelcomeEmailProps {
   userName: string;
   workspaceName?: string;
   loginUrl: string;
+  // Agency branding support
+  branding?: EmailBranding;
 }
 
 export function WelcomeEmail({
   userName,
   workspaceName,
   loginUrl,
+  branding = DEFAULT_EMAIL_BRANDING,
 }: WelcomeEmailProps) {
+  // Create branded styles
+  const styles = createBrandedStyles(branding);
+  const primaryColor = branding.primaryColor || DEFAULT_EMAIL_BRANDING.primaryColor;
+
   return (
-    <div style={container}>
-      <div style={content}>
-        {/* Header with gradient */}
-        <div style={headerSection}>
-          <div style={logoContainer}>
-            <span style={logoText}>Lead</span>
-            <span style={logoAccent}>Flow</span>
+    <div style={styles.container}>
+      <div style={styles.content}>
+        {/* Header */}
+        <div style={styles.headerSection}>
+          <div style={styles.logoContainer}>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.appName} style={styles.logoImage} />
+            ) : (
+              <span style={styles.logoText}>{branding.appName}</span>
+            )}
           </div>
         </div>
 
-        <h1 style={heading}>Welkom bij LeadFlow! 🎉</h1>
+        <div style={styles.badge}>
+          <span style={styles.badgeText}>WELKOM</span>
+        </div>
 
-        <p style={text}>
+        <h1 style={styles.heading}>Welkom bij {branding.appName}! 🎉</h1>
+
+        <p style={styles.text}>
           Hoi <strong>{userName}</strong>,
         </p>
 
-        <p style={text}>
+        <p style={styles.text}>
           Geweldig dat je aan boord bent! Je account is succesvol aangemaakt
           {workspaceName && (
             <> voor <strong>{workspaceName}</strong></>
           )}.
         </p>
 
-        <p style={text}>
-          Met LeadFlow kun je:
+        <p style={styles.text}>
+          Met {branding.appName} kun je:
         </p>
 
         <ul style={featureList}>
           <li style={featureItem}>
-            <span style={checkmark}>✓</span>
+            <span style={{ ...checkmark, color: primaryColor }}>✓</span>
             Leads automatisch importeren vanuit Meta Ads
           </li>
           <li style={featureItem}>
-            <span style={checkmark}>✓</span>
+            <span style={{ ...checkmark, color: primaryColor }}>✓</span>
             Je sales pipeline visueel beheren met Kanban boards
           </li>
           <li style={featureItem}>
-            <span style={checkmark}>✓</span>
+            <span style={{ ...checkmark, color: primaryColor }}>✓</span>
             Follow-ups automatiseren en nooit meer een lead missen
           </li>
           <li style={featureItem}>
-            <span style={checkmark}>✓</span>
+            <span style={{ ...checkmark, color: primaryColor }}>✓</span>
             Real-time analytics en rapportages bekijken
           </li>
         </ul>
 
-        <div style={buttonContainer}>
-          <a href={loginUrl} style={button}>
+        <div style={styles.buttonContainer}>
+          <a href={loginUrl} style={styles.button}>
             Ga naar je Dashboard
           </a>
         </div>
@@ -73,84 +89,27 @@ export function WelcomeEmail({
           </ol>
         </div>
 
-        <p style={text}>
-          Heb je vragen? Reply direct op deze email of check onze{" "}
-          <a href="https://wetryleadflow.com/resources" style={link}>
-            resources pagina
-          </a>.
+        <p style={styles.text}>
+          Heb je vragen? Reply direct op deze email of neem contact met ons op.
         </p>
 
-        <hr style={divider} />
+        <hr style={styles.divider} />
 
-        <p style={footer}>
+        <p style={styles.footer}>
           Met vriendelijke groet,
           <br />
-          Het LeadFlow Team
+          <strong>Het {branding.appName} Team</strong>
         </p>
 
-        <p style={footerSmall}>
-          LeadFlow - Lead Generation & CRM Platform
-          <br />
-          <a href="https://wetryleadflow.com" style={footerLink}>wetryleadflow.com</a>
+        <p style={styles.footerSmall}>
+          {getPoweredByText(branding)}
         </p>
       </div>
     </div>
   );
 }
 
-// Inline styles for email compatibility
-const container: React.CSSProperties = {
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  backgroundColor: "#f4f4f5",
-  padding: "40px 20px",
-};
-
-const content: React.CSSProperties = {
-  backgroundColor: "#ffffff",
-  borderRadius: "12px",
-  padding: "40px",
-  maxWidth: "600px",
-  margin: "0 auto",
-  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-};
-
-const headerSection: React.CSSProperties = {
-  textAlign: "center",
-  marginBottom: "32px",
-};
-
-const logoContainer: React.CSSProperties = {
-  display: "inline-block",
-  fontSize: "28px",
-  fontWeight: "bold",
-};
-
-const logoText: React.CSSProperties = {
-  color: "#18181b",
-};
-
-const logoAccent: React.CSSProperties = {
-  background: "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  backgroundClip: "text",
-};
-
-const heading: React.CSSProperties = {
-  fontSize: "28px",
-  fontWeight: "bold",
-  color: "#18181b",
-  marginBottom: "24px",
-  textAlign: "center",
-};
-
-const text: React.CSSProperties = {
-  fontSize: "16px",
-  lineHeight: "26px",
-  color: "#3f3f46",
-  marginBottom: "16px",
-};
-
+// Welcome-specific styles
 const featureList: React.CSSProperties = {
   listStyle: "none",
   padding: 0,
@@ -166,26 +125,8 @@ const featureItem: React.CSSProperties = {
 };
 
 const checkmark: React.CSSProperties = {
-  color: "#22c55e",
   fontWeight: "bold",
   marginRight: "12px",
-};
-
-const buttonContainer: React.CSSProperties = {
-  textAlign: "center",
-  margin: "32px 0",
-};
-
-const button: React.CSSProperties = {
-  background: "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
-  color: "#ffffff",
-  padding: "14px 36px",
-  borderRadius: "8px",
-  textDecoration: "none",
-  fontWeight: "600",
-  fontSize: "16px",
-  display: "inline-block",
-  boxShadow: "0 4px 14px rgba(139, 92, 246, 0.4)",
 };
 
 const tipsSection: React.CSSProperties = {
@@ -213,35 +154,6 @@ const tipItem: React.CSSProperties = {
   lineHeight: "22px",
   color: "#52525b",
   marginBottom: "8px",
-};
-
-const link: React.CSSProperties = {
-  color: "#8b5cf6",
-  textDecoration: "underline",
-};
-
-const divider: React.CSSProperties = {
-  border: "none",
-  borderTop: "1px solid #e4e4e7",
-  margin: "32px 0",
-};
-
-const footer: React.CSSProperties = {
-  fontSize: "15px",
-  color: "#3f3f46",
-  lineHeight: "24px",
-};
-
-const footerSmall: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#a1a1aa",
-  textAlign: "center",
-  marginTop: "24px",
-};
-
-const footerLink: React.CSSProperties = {
-  color: "#a1a1aa",
-  textDecoration: "underline",
 };
 
 export default WelcomeEmail;

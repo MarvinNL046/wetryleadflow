@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { getCreditNote, getInvoiceSettingsForCreditNote } from "@/lib/actions/credit-notes";
+import { getCreditNote } from "@/lib/actions/credit-notes";
+import { getDocumentBranding } from "@/lib/branding/get-branding";
 import { CreditNotePDF } from "@/lib/pdf/credit-note-template";
 
 export async function GET(
@@ -18,10 +19,7 @@ export async function GET(
       );
     }
 
-    const [creditNote, settings] = await Promise.all([
-      getCreditNote(creditNoteId),
-      getInvoiceSettingsForCreditNote(),
-    ]);
+    const creditNote = await getCreditNote(creditNoteId);
 
     if (!creditNote) {
       return NextResponse.json(
@@ -30,9 +28,12 @@ export async function GET(
       );
     }
 
+    // Get branding for this workspace (includes agency branding if applicable)
+    const branding = await getDocumentBranding(creditNote.workspaceId, "creditNote");
+
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      <CreditNotePDF creditNote={creditNote as any} settings={settings || {}} />
+      <CreditNotePDF creditNote={creditNote as any} branding={branding} />
     );
 
     // Convert Buffer to Uint8Array for NextResponse
