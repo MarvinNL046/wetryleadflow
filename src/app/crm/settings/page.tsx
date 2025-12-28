@@ -16,6 +16,7 @@ import {
   Palette,
   ExternalLink,
   CreditCard,
+  Paintbrush,
 } from "lucide-react";
 
 export default async function CRMSettingsPage() {
@@ -51,6 +52,14 @@ export default async function CRMSettingsPage() {
           title: "Uiterlijk",
           description: "Donker/licht thema instellen",
           color: "bg-pink-100 text-pink-600 dark:bg-pink-900 dark:text-pink-400",
+          external: false,
+        },
+        {
+          href: "/crm/settings/branding",
+          icon: Paintbrush,
+          title: "Branding",
+          description: "Logo en kleuren voor emails en PDFs",
+          color: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400",
           external: false,
         },
         // Only show billing for direct users (not agency clients)
