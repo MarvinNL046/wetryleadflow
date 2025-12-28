@@ -375,7 +375,7 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [previewScale, setPreviewScale] = useState(80);
+  const [previewScale, setPreviewScale] = useState(100);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -920,13 +920,13 @@ export default function BrandingPage() {
                 <span className="text-xs text-zinc-500">Zoom:</span>
                 <input
                   type="range"
-                  min="50"
-                  max="100"
+                  min="60"
+                  max="120"
                   value={previewScale}
                   onChange={(e) => setPreviewScale(Number(e.target.value))}
                   className="w-32 h-1.5 bg-zinc-300 rounded-lg appearance-none cursor-pointer accent-violet-600"
                 />
-                <span className="text-xs text-zinc-600 w-8">{previewScale}%</span>
+                <span className="text-xs text-zinc-600 w-10">{previewScale}%</span>
               </div>
             </div>
 
