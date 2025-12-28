@@ -2553,3 +2553,63 @@ export const platformLeadsPoolRelations = relations(platformLeadsPool, ({ one })
 // Platform Leads Pool types
 export type PlatformLeadPool = typeof platformLeadsPool.$inferSelect;
 export type NewPlatformLeadPool = typeof platformLeadsPool.$inferInsert;
+
+// ============================================
+// Email Templates (Custom User Templates)
+// ============================================
+export const emailTemplateTypeEnum = pgEnum("email_template_type", [
+  "lead_notification",   // New lead received
+  "follow_up",          // Follow-up reminder
+  "quote_sent",         // Quotation sent
+  "invoice_sent",       // Invoice sent
+  "payment_reminder",   // Payment reminder
+  "welcome",            // Welcome email
+  "custom",             // User-defined template
+]);
+
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  // Template identification
+  name: varchar("name", { length: 100 }).notNull(),
+  type: emailTemplateTypeEnum("type").default("custom").notNull(),
+  // Content
+  subject: varchar("subject", { length: 500 }).notNull(),
+  bodyHtml: text("body_html").notNull(),
+  bodyText: text("body_text"), // Plain text fallback
+  // Variables (stored as JSON array of available vars)
+  // e.g., ["contact.firstName", "contact.email", "opportunity.title"]
+  variables: jsonb("variables").$type<string[]>().default([]),
+  // Status
+  isActive: boolean("is_active").default(true).notNull(),
+  isDefault: boolean("is_default").default(false).notNull(), // System default template
+  // Metadata
+  createdById: integer("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  lastUsedAt: timestamp("last_used_at"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("email_template_workspace_idx").on(table.workspaceId),
+  index("email_template_type_idx").on(table.type),
+  index("email_template_active_idx").on(table.isActive),
+  uniqueIndex("email_template_workspace_name_idx").on(table.workspaceId, table.name),
+]);
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [emailTemplates.workspaceId],
+    references: [workspaces.id],
+  }),
+  createdBy: one(users, {
+    fields: [emailTemplates.createdById],
+    references: [users.id],
+  }),
+}));
+
+// Email Templates types
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type NewEmailTemplate = typeof emailTemplates.$inferInsert;

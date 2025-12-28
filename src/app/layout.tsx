@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
 import { stackClientApp } from "../stack/client";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
@@ -82,6 +83,7 @@ export default function RootLayout({
               </Suspense>
               {children}
               <ImpersonationBanner />
+              <Toaster richColors position="top-right" />
             </StackTheme>
           </StackProvider>
         </ThemeProvider>

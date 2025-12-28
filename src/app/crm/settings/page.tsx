@@ -99,12 +99,12 @@ export default async function CRMSettingsPage() {
       description: "Email en notificatie instellingen",
       items: [
         {
-          href: "#",
+          href: "/crm/settings/email-templates",
           icon: Mail,
           title: "Email Templates",
           description: "Pas automatische emails aan",
           color: "bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400",
-          comingSoon: true,
+          external: false,
         },
         {
           href: "#",
