@@ -1,12 +1,39 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { agencies, agencyMemberships, orgs, memberships, contacts } from "@/lib/db/schema";
-import { eq, and, count, sql } from "drizzle-orm";
+import { agencies, agencyMemberships, orgs, memberships, contacts, workspaces, users } from "@/lib/db/schema";
+import { eq, and, count, sql, or } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
 import { revalidatePath } from "next/cache";
 import { requireAgencyMember, requireAgencyOwner, requireAgencyAdmin } from "@/lib/auth/agency";
 import { DEFAULT_AGENCY_LOGO } from "@/lib/constants";
+
+/**
+ * Get or create the database user for a Stack Auth user
+ */
+async function getOrCreateDbUser(stackUser: { id: string; primaryEmail: string | null; displayName: string | null }) {
+  const email = stackUser.primaryEmail || `user-${stackUser.id}@placeholder.local`;
+
+  // Check if user exists
+  let dbUser = await db.query.users.findFirst({
+    where: or(eq(users.externalId, stackUser.id), eq(users.email, email)),
+  });
+
+  if (!dbUser) {
+    // Create new database user
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        externalId: stackUser.id,
+        email,
+        name: stackUser.displayName,
+      })
+      .returning();
+    dbUser = newUser;
+  }
+
+  return dbUser;
+}
 
 /**
  * Check if the current user already has an agency membership
@@ -77,6 +104,9 @@ export async function createAgency(data: {
   }
 
   try {
+    // Get or create the database user
+    const dbUser = await getOrCreateDbUser(user);
+
     // Create agency
     const [agency] = await db
       .insert(agencies)
@@ -89,14 +119,39 @@ export async function createAgency(data: {
       })
       .returning();
 
-    // Add user as owner
+    // Add user as agency owner
     await db.insert(agencyMemberships).values({
       agencyId: agency.id,
       userId: user.id,
       role: "owner",
     });
 
+    // Create the agency's own org for their leads (not a client, so agencyId is null)
+    const [agencyOrg] = await db
+      .insert(orgs)
+      .values({
+        name: `${data.name}`,
+        slug: `agency-${agency.id}-own`,
+        // agencyId is null - this is the agency's own org, not a client
+      })
+      .returning();
+
+    // Create default workspace for agency's leads
+    await db.insert(workspaces).values({
+      orgId: agencyOrg.id,
+      name: "Leads",
+      slug: "leads",
+    });
+
+    // Add agency owner as org owner (for CRM access)
+    await db.insert(memberships).values({
+      userId: dbUser.id,
+      orgId: agencyOrg.id,
+      role: "owner",
+    });
+
     revalidatePath("/agency");
+    revalidatePath("/crm");
     return { success: true, agencyId: agency.id, slug: agency.slug };
   } catch (error) {
     console.error("[createAgency] Error:", error);
@@ -144,6 +199,9 @@ export async function createAgencyWithOnboarding(data: {
   }
 
   try {
+    // Get or create the database user
+    const dbUser = await getOrCreateDbUser(user);
+
     // Create agency with branding and mark onboarding as complete
     // Use default LeadFlow logo if no custom logo is provided
     const [agency] = await db
@@ -161,14 +219,39 @@ export async function createAgencyWithOnboarding(data: {
       })
       .returning();
 
-    // Add user as owner
+    // Add user as agency owner
     await db.insert(agencyMemberships).values({
       agencyId: agency.id,
       userId: user.id,
       role: "owner",
     });
 
+    // Create the agency's own org for their leads (not a client, so agencyId is null)
+    const [agencyOrg] = await db
+      .insert(orgs)
+      .values({
+        name: `${data.name}`,
+        slug: `agency-${agency.id}-own`,
+        // agencyId is null - this is the agency's own org, not a client
+      })
+      .returning();
+
+    // Create default workspace for agency's leads
+    await db.insert(workspaces).values({
+      orgId: agencyOrg.id,
+      name: "Leads",
+      slug: "leads",
+    });
+
+    // Add agency owner as org owner (for CRM access)
+    await db.insert(memberships).values({
+      userId: dbUser.id,
+      orgId: agencyOrg.id,
+      role: "owner",
+    });
+
     revalidatePath("/agency");
+    revalidatePath("/crm");
     return { success: true, agencyId: agency.id, slug: agency.slug };
   } catch (error) {
     console.error("[createAgencyWithOnboarding] Error:", error);

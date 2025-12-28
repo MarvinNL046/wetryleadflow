@@ -17,14 +17,50 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/agency", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agency/clients", label: "Clients", icon: Building2 },
-  { href: "/agency/team", label: "Team", icon: Users },
-  { href: "/agency/branding", label: "Branding", icon: Palette },
-  { href: "/agency/saas", label: "SaaS Mode", icon: Sparkles },
-  { href: "/agency/billing", label: "Billing", icon: CreditCard },
-  { href: "/agency/settings", label: "Settings", icon: Settings },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const navSections: NavSection[] = [
+  {
+    title: "Overzicht",
+    items: [
+      { href: "/agency", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Klanten",
+    items: [
+      { href: "/agency/clients", label: "Clients", icon: Building2 },
+    ],
+  },
+  {
+    title: "Team & Branding",
+    items: [
+      { href: "/agency/team", label: "Team", icon: Users },
+      { href: "/agency/branding", label: "Branding", icon: Palette },
+    ],
+  },
+  {
+    title: "Business",
+    items: [
+      { href: "/agency/saas", label: "SaaS Mode", icon: Sparkles },
+      { href: "/agency/billing", label: "Billing", icon: CreditCard },
+    ],
+  },
+  {
+    title: "Configuratie",
+    items: [
+      { href: "/agency/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 interface AgencySidebarProps {
@@ -56,30 +92,47 @@ export function AgencySidebar({ hasImpersonationBanner }: AgencySidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 space-y-1 p-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href ||
-            (item.href !== "/agency" && pathname.startsWith(item.href));
+      <nav className="relative z-10 space-y-4 p-4">
+        {navSections.map((section, sectionIndex) => (
+          <div key={section.title}>
+            {/* Section divider (not for first section) */}
+            {sectionIndex > 0 && (
+              <div className="mb-3 border-t border-zinc-200/50 dark:border-zinc-800/50" />
+            )}
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "active bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400"
-                  : "text-zinc-600 hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
-              )}
-            >
-              <item.icon className={cn(
-                "h-4 w-4 transition-colors",
-                isActive && "text-violet-500"
-              )} />
-              {item.label}
-            </Link>
-          );
-        })}
+            {/* Section title */}
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              {section.title}
+            </p>
+
+            {/* Section items */}
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const isActive = pathname === item.href ||
+                  (item.href !== "/agency" && pathname.startsWith(item.href));
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "active bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400"
+                        : "text-zinc-600 hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    <item.icon className={cn(
+                      "h-4 w-4 transition-colors",
+                      isActive && "text-violet-500"
+                    )} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom section */}

@@ -4,6 +4,7 @@ import { getLeadPriorityInsight, isAIConfigured, canUseAIInsights } from "@/lib/
 import { db } from "@/lib/db";
 import { orgs, agencies } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { isSuperAdmin } from "@/lib/auth/superadmin";
 
 /**
  * GET /api/ai/insights/lead-priority
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check tier access
-    const hasAccess = await checkAIAccess(ctx.org.id);
+    // Check tier access (super admins bypass all restrictions)
+    const hasAccess = await checkAIAccess(ctx.org.id, ctx.user.email);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "AI Insights requires Pro or Enterprise subscription", code: "TIER_REQUIRED" },
@@ -98,8 +99,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check tier access
-    const hasAccess = await checkAIAccess(ctx.org.id);
+    // Check tier access (super admins bypass all restrictions)
+    const hasAccess = await checkAIAccess(ctx.org.id, ctx.user.email);
     if (!hasAccess) {
       return NextResponse.json(
         { error: "AI Insights requires Pro or Enterprise subscription", code: "TIER_REQUIRED" },
@@ -142,9 +143,15 @@ export async function POST(request: NextRequest) {
 
 /**
  * Check if the org has access to AI Insights.
+ * Super admins always have access (no limits).
  * Pro/Enterprise tiers for direct users, Growth/Scale for agency clients.
  */
-async function checkAIAccess(orgId: number): Promise<boolean> {
+async function checkAIAccess(orgId: number, userEmail: string): Promise<boolean> {
+  // Super admins bypass all tier restrictions
+  if (isSuperAdmin(userEmail)) {
+    return true;
+  }
+
   const org = await db.query.orgs.findFirst({
     where: eq(orgs.id, orgId),
   });

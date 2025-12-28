@@ -33,19 +33,22 @@ interface MetaConnectionCardProps {
     pageName: string;
     subscribedToLeadgen: boolean;
   }>;
+  /** Custom return URL after OAuth flow (defaults to /crm/settings/integrations) */
+  returnUrl?: string;
 }
 
 export function MetaConnectionCard({
   connected,
   connection,
   pages = [],
+  returnUrl = "/crm/settings/integrations",
 }: MetaConnectionCardProps) {
   const router = useRouter();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const handleConnect = () => {
-    // Redirect to OAuth flow
-    window.location.href = "/api/auth/meta/connect?returnUrl=/crm/settings/integrations";
+    // Redirect to OAuth flow with custom return URL
+    window.location.href = `/api/auth/meta/connect?returnUrl=${encodeURIComponent(returnUrl)}`;
   };
 
   const handleDisconnect = async () => {

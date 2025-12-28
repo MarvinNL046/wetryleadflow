@@ -15,14 +15,15 @@ import {
   Shield,
   Palette,
   ExternalLink,
-  CreditCard,
 } from "lucide-react";
 
-export default async function CRMSettingsPage() {
-  const ctx = await requireAuthContext();
+interface PageProps {
+  params: Promise<{ agencySlug: string }>;
+}
 
-  // Check if user is via agency (no direct billing)
-  const isAgencyClient = !!ctx.org.agencyId;
+export default async function AgencyCRMSettingsPage({ params }: PageProps) {
+  const { agencySlug } = await params;
+  const ctx = await requireAuthContext();
 
   const settingsSections = [
     {
@@ -30,7 +31,7 @@ export default async function CRMSettingsPage() {
       description: "Persoonlijke en organisatie instellingen",
       items: [
         {
-          href: "/settings",
+          href: `/${agencySlug}/settings`,
           icon: User,
           title: "Profiel",
           description: "Je naam en persoonlijke gegevens",
@@ -38,7 +39,7 @@ export default async function CRMSettingsPage() {
           external: false,
         },
         {
-          href: "/settings",
+          href: `/${agencySlug}/settings`,
           icon: Building2,
           title: "Organisatie",
           description: "Bedrijfsnaam en instellingen",
@@ -46,22 +47,13 @@ export default async function CRMSettingsPage() {
           external: false,
         },
         {
-          href: "/settings",
+          href: `/${agencySlug}/settings`,
           icon: Palette,
           title: "Uiterlijk",
           description: "Donker/licht thema instellen",
           color: "bg-pink-100 text-pink-600 dark:bg-pink-900 dark:text-pink-400",
           external: false,
         },
-        // Only show billing for direct users (not agency clients)
-        ...(!isAgencyClient ? [{
-          href: "/crm/settings/billing",
-          icon: CreditCard,
-          title: "Abonnement & Billing",
-          description: "Beheer je plan en betalingen",
-          color: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
-          external: false,
-        }] : []),
       ],
     },
     {
@@ -69,7 +61,7 @@ export default async function CRMSettingsPage() {
       description: "Pipelines, integraties en automatisering",
       items: [
         {
-          href: "/crm/pipelines",
+          href: `/${agencySlug}/crm/pipelines`,
           icon: Kanban,
           title: "Pipelines",
           description: "Beheer je sales pipelines en stages",
@@ -77,7 +69,7 @@ export default async function CRMSettingsPage() {
           external: false,
         },
         {
-          href: "/crm/settings/integrations",
+          href: `/${agencySlug}/crm/settings/integrations`,
           icon: Plug,
           title: "Integraties",
           description: "Facebook Lead Ads en andere koppelingen",
@@ -85,7 +77,7 @@ export default async function CRMSettingsPage() {
           external: false,
         },
         {
-          href: "/crm/settings/follow-ups",
+          href: `/${agencySlug}/crm/settings/follow-ups`,
           icon: Route,
           title: "Follow-Up Regels",
           description: "Automatische follow-ups en terugbelperiodes",

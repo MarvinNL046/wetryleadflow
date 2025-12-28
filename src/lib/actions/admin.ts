@@ -12,7 +12,8 @@ import {
   featureFlags, featureFlagOverrides,
   supportTickets, supportTicketReplies,
   opportunityStageHistory, notes, leadIngestRoutes, notifications,
-  agencyInvites, agencyStripeAccounts, agencySaasSettings
+  agencyInvites, agencyStripeAccounts, agencySaasSettings,
+  platformLeadsPool,
 } from "@/lib/db/schema";
 import { requireSuperAdmin } from "@/lib/auth/superadmin";
 import { sendEmail, SupportTicketReplyEmail } from "@/lib/email";
@@ -2818,4 +2819,266 @@ export async function deleteAgency(agencyId: number) {
   await db.delete(agencies).where(eq(agencies.id, agencyId));
 
   return { success: true, deletedName: agency.name };
+}
+
+// ============================================
+// Lead Resale Management
+// ============================================
+
+/**
+ * Get all leads marked as outside area (for resale)
+ */
+export async function getOutsideAreaLeads() {
+  await requireSuperAdmin();
+
+  const leads = await db.query.contacts.findMany({
+    where: eq(contacts.outsideArea, true),
+    orderBy: [desc(contacts.createdAt)],
+    with: {
+      workspace: {
+        with: {
+          org: true,
+        },
+      },
+    },
+  });
+
+  return leads;
+}
+
+/**
+ * Update lead resale status
+ */
+export async function updateLeadResaleStatus(
+  leadId: number,
+  status: string,
+  notes?: string
+) {
+  await requireSuperAdmin();
+
+  const updateData: Record<string, unknown> = {
+    resaleStatus: status,
+    updatedAt: new Date(),
+  };
+
+  if (notes) {
+    updateData.resaleNotes = notes;
+  }
+
+  if (status === "sold") {
+    updateData.resaleSoldAt = new Date();
+  }
+
+  if (status === "removed") {
+    updateData.outsideArea = false;
+    updateData.forResale = false;
+    updateData.resaleStatus = null;
+  }
+
+  await db
+    .update(contacts)
+    .set(updateData)
+    .where(eq(contacts.id, leadId));
+}
+
+// ============================================
+// Platform Leads Pool (Super-Admin Only)
+// ============================================
+// SECURITY: All functions require super-admin access
+// No RLS bypass - only server actions with requireSuperAdmin()
+
+/**
+ * Add a lead to the platform pool
+ * Called when a lead is marked as outside_area
+ */
+export async function addLeadToPool(data: {
+  contactId: number;
+  workspaceId: number;
+  label?: string;
+  reason: string;
+  notes?: string;
+}) {
+  // This is called from processLead, not directly by super-admin
+  // So we get the context from the contact's workspace
+
+  // Get contact with workspace and org info
+  const contact = await db.query.contacts.findFirst({
+    where: eq(contacts.id, data.contactId),
+    with: {
+      workspace: {
+        with: {
+          org: {
+            with: {
+              agency: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!contact || !contact.workspace) {
+    throw new Error("Contact or workspace not found");
+  }
+
+  // Insert into platform pool with denormalized data
+  await db.insert(platformLeadsPool).values({
+    originalContactId: contact.id,
+    sourceWorkspaceId: contact.workspaceId,
+    sourceOrgId: contact.workspace.orgId,
+    sourceAgencyId: contact.workspace.org?.agencyId ?? null,
+    // Denormalized lead data
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    email: contact.email,
+    phone: contact.phone,
+    company: contact.company,
+    street: contact.street,
+    houseNumber: contact.houseNumber,
+    postalCode: contact.postalCode,
+    city: contact.city,
+    province: contact.province,
+    country: contact.country,
+    // Categorization
+    label: data.label ?? "Buiten werkgebied",
+    reason: data.reason,
+    notes: data.notes,
+    // Status
+    status: "available",
+  });
+
+  return { success: true };
+}
+
+/**
+ * Get all leads in the platform pool (super-admin only)
+ */
+export async function getPlatformLeadsPool(filters?: {
+  status?: string;
+  city?: string;
+  sourceOrgId?: number;
+  sourceAgencyId?: number;
+}) {
+  await requireSuperAdmin();
+
+  let query = db.query.platformLeadsPool.findMany({
+    with: {
+      sourceOrg: true,
+      sourceAgency: true,
+      sourceWorkspace: true,
+      soldToOrg: true,
+      addedBy: true,
+      soldBy: true,
+    },
+    orderBy: [desc(platformLeadsPool.createdAt)],
+  });
+
+  const leads = await query;
+
+  // Apply filters in-memory (could optimize with where clauses)
+  let filteredLeads = leads;
+  if (filters?.status) {
+    filteredLeads = filteredLeads.filter(l => l.status === filters.status);
+  }
+  if (filters?.city) {
+    filteredLeads = filteredLeads.filter(l =>
+      l.city?.toLowerCase().includes(filters.city!.toLowerCase())
+    );
+  }
+  if (filters?.sourceOrgId) {
+    filteredLeads = filteredLeads.filter(l => l.sourceOrgId === filters.sourceOrgId);
+  }
+  if (filters?.sourceAgencyId) {
+    filteredLeads = filteredLeads.filter(l => l.sourceAgencyId === filters.sourceAgencyId);
+  }
+
+  return filteredLeads;
+}
+
+/**
+ * Update platform lead pool status (super-admin only)
+ */
+export async function updatePlatformLeadStatus(
+  leadId: number,
+  status: "available" | "reserved" | "sold" | "expired" | "withdrawn",
+  data?: {
+    notes?: string;
+    price?: string;
+    soldToOrgId?: number;
+    soldToAgencyId?: number;
+    reservedUntil?: Date;
+  }
+) {
+  const superAdmin = await requireSuperAdmin();
+
+  // Look up the database user ID from Stack Auth external ID
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.externalId, superAdmin.id),
+  });
+
+  const updateData: Record<string, unknown> = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  if (data?.notes) {
+    updateData.notes = data.notes;
+  }
+
+  if (status === "sold") {
+    updateData.soldAt = new Date();
+    if (dbUser) updateData.soldById = dbUser.id;
+    if (data?.price) updateData.price = data.price;
+    if (data?.soldToOrgId) updateData.soldToOrgId = data.soldToOrgId;
+    if (data?.soldToAgencyId) updateData.soldToAgencyId = data.soldToAgencyId;
+  }
+
+  if (status === "reserved") {
+    if (data?.reservedUntil) updateData.reservedUntil = data.reservedUntil;
+    if (dbUser) updateData.reservedById = dbUser.id;
+  }
+
+  await db
+    .update(platformLeadsPool)
+    .set(updateData)
+    .where(eq(platformLeadsPool.id, leadId));
+
+  return { success: true };
+}
+
+/**
+ * Get platform leads pool statistics (super-admin only)
+ */
+export async function getPlatformLeadsPoolStats() {
+  await requireSuperAdmin();
+
+  const leads = await db.query.platformLeadsPool.findMany();
+
+  const stats = {
+    total: leads.length,
+    available: leads.filter(l => l.status === "available").length,
+    reserved: leads.filter(l => l.status === "reserved").length,
+    sold: leads.filter(l => l.status === "sold").length,
+    expired: leads.filter(l => l.status === "expired").length,
+    withdrawn: leads.filter(l => l.status === "withdrawn").length,
+    totalRevenue: leads
+      .filter(l => l.status === "sold" && l.price)
+      .reduce((sum, l) => sum + parseFloat(l.price || "0"), 0),
+  };
+
+  return stats;
+}
+
+/**
+ * Delete a lead from the platform pool (super-admin only)
+ * Use with caution - prefer "withdrawn" status
+ */
+export async function deletePlatformLead(leadId: number) {
+  await requireSuperAdmin();
+
+  await db
+    .delete(platformLeadsPool)
+    .where(eq(platformLeadsPool.id, leadId));
+
+  return { success: true };
 }

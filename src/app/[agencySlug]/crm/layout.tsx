@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { useUser } from "@stackframe/stack";
@@ -23,8 +23,10 @@ import {
   SidebarChecklist,
 } from "@/components/onboarding";
 import { BrandedHeader } from "@/components/agency/branded-header";
+import { ClientImpersonationBanner } from "@/components/agency/client-impersonation-banner";
 import { useAgency } from "@/lib/agency/context";
 import { cn } from "@/lib/utils";
+import type { AgencyClientImpersonationState } from "@/lib/auth/agency-client-impersonate";
 
 export default function AgencyCRMLayout({
   children,
@@ -36,9 +38,24 @@ export default function AgencyCRMLayout({
   const params = useParams();
   const agencySlug = params.agencySlug as string;
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [impersonationState, setImpersonationState] = useState<AgencyClientImpersonationState | null>(null);
   const { agency } = useAgency();
 
   const org = user?.selectedTeam;
+
+  // Check for client impersonation state
+  useEffect(() => {
+    async function checkImpersonation() {
+      try {
+        const res = await fetch("/api/agency/impersonation-state");
+        const data = await res.json();
+        setImpersonationState(data.state);
+      } catch {
+        setImpersonationState(null);
+      }
+    }
+    checkImpersonation();
+  }, []);
 
   // Build nav items with agency prefix
   const navItems = [
@@ -48,9 +65,19 @@ export default function AgencyCRMLayout({
     { href: `/${agencySlug}/crm/analytics`, label: "Analytics", icon: BarChart3 },
   ];
 
+  const hasImpersonationBanner = !!impersonationState;
+
   return (
     <OnboardingProvider>
-      <div className="flex min-h-screen">
+      {/* Client Impersonation Banner */}
+      {impersonationState && (
+        <ClientImpersonationBanner
+          targetOrgName={impersonationState.targetOrgName}
+          targetUserEmail={impersonationState.targetUserEmail}
+          agencyUserEmail={impersonationState.agencyUserEmail}
+        />
+      )}
+      <div className={cn("flex min-h-screen", hasImpersonationBanner && "pt-10")}>
         {/* Sidebar */}
         <aside className="dashboard-sidebar relative w-64 border-r border-zinc-200/50 dark:border-zinc-800/50">
           {/* Gradient accent line - uses agency colors */}

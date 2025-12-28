@@ -23,27 +23,71 @@ import {
   Flag,
   MessageSquare,
   Loader2,
+  MapPinOff,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/billing", label: "Billing", icon: CreditCard, isNew: true },
-  { href: "/admin/revenue", label: "Revenue", icon: TrendingUp, isNew: true },
-  { href: "/admin/agencies", label: "Agencies", icon: Building },
-  { href: "/admin/orgs", label: "Organizations", icon: Building2 },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/integrations", label: "Integrations", icon: Link2 },
-  { href: "/admin/cron", label: "Cron Jobs", icon: Clock, isNew: true },
-  { href: "/admin/system", label: "System", icon: Activity },
-  { href: "/admin/announcements", label: "Announcements", icon: Megaphone, isNew: true },
-  { href: "/admin/features", label: "Features", icon: Flag, isNew: true },
-  { href: "/admin/support", label: "Support", icon: MessageSquare, isNew: true },
-  { href: "/admin/audit", label: "Audit Log", icon: ScrollText },
-  { href: "/admin/outbox", label: "Automations", icon: Zap },
-  { href: "/admin/emails", label: "Emails", icon: Mail },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isNew?: boolean;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const navSections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Revenue",
+    items: [
+      { href: "/admin/billing", label: "Billing", icon: CreditCard },
+      { href: "/admin/revenue", label: "Revenue", icon: TrendingUp },
+      { href: "/admin/leads-resale", label: "Leads Pool", icon: MapPinOff, isNew: true },
+    ],
+  },
+  {
+    title: "Beheer",
+    items: [
+      { href: "/admin/agencies", label: "Agencies", icon: Building },
+      { href: "/admin/orgs", label: "Organizations", icon: Building2 },
+      { href: "/admin/users", label: "Users", icon: Users },
+    ],
+  },
+  {
+    title: "Systeem",
+    items: [
+      { href: "/admin/integrations", label: "Integrations", icon: Link2 },
+      { href: "/admin/cron", label: "Cron Jobs", icon: Clock },
+      { href: "/admin/system", label: "System", icon: Activity },
+      { href: "/admin/outbox", label: "Automations", icon: Zap },
+    ],
+  },
+  {
+    title: "Communicatie",
+    items: [
+      { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
+      { href: "/admin/support", label: "Support", icon: MessageSquare },
+      { href: "/admin/emails", label: "Emails", icon: Mail },
+    ],
+  },
+  {
+    title: "Logs & Features",
+    items: [
+      { href: "/admin/features", label: "Features", icon: Flag },
+      { href: "/admin/audit", label: "Audit Log", icon: ScrollText },
+    ],
+  },
 ];
 
 export default function AdminLayout({
@@ -112,36 +156,53 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="relative z-10 space-y-1 p-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== "/admin" && pathname.startsWith(item.href));
+        <nav className="relative z-10 space-y-4 p-4">
+          {navSections.map((section, sectionIndex) => (
+            <div key={section.title}>
+              {/* Section divider (not for first section) */}
+              {sectionIndex > 0 && (
+                <div className="mb-3 border-t border-zinc-200/50 dark:border-zinc-800/50" />
+              )}
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "active bg-gradient-to-r from-red-500/10 to-orange-500/10 text-red-600 dark:text-red-400"
-                    : "text-zinc-600 hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
-                )}
-              >
-                <item.icon className={cn(
-                  "h-4 w-4 transition-colors",
-                  isActive && "text-red-500"
-                )} />
-                {item.label}
-                {/* NEW badge for new features */}
-                {item.isNew && (
-                  <span className="ml-auto rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    NEW
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+              {/* Section title */}
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                {section.title}
+              </p>
+
+              {/* Section items */}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href ||
+                    (item.href !== "/admin" && pathname.startsWith(item.href));
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "active bg-gradient-to-r from-red-500/10 to-orange-500/10 text-red-600 dark:text-red-400"
+                          : "text-zinc-600 hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100"
+                      )}
+                    >
+                      <item.icon className={cn(
+                        "h-4 w-4 transition-colors",
+                        isActive && "text-red-500"
+                      )} />
+                      {item.label}
+                      {/* NEW badge for new features */}
+                      {item.isNew && (
+                        <span className="ml-auto rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          NEW
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom section */}

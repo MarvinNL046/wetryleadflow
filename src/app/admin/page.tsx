@@ -13,6 +13,7 @@ import {
   Activity,
   ArrowRight,
   Zap,
+  MapPinOff,
 } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -202,6 +203,19 @@ export default async function AdminDashboard() {
                 <div>
                   <p className="text-sm font-medium">Automations</p>
                   <p className="text-xs text-zinc-500">Event processing</p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/leads-resale"
+                className="group flex items-center gap-3 rounded-lg border border-zinc-200/50 bg-zinc-50/50 p-3 transition-all hover:border-orange-200 hover:bg-orange-50/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 dark:hover:border-orange-900 dark:hover:bg-orange-950/30"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                  <MapPinOff className="h-4 w-4 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Lead Doorverkoop</p>
+                  <p className="text-xs text-zinc-500">Buiten gebied</p>
                 </div>
               </Link>
             </div>

@@ -10,6 +10,7 @@ import {
   clientSubscriptions,
   agencyInvoices,
   invoices,
+  orgs,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -134,15 +135,19 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Handle platform-level events (agency subscriptions to LeadFlow)
+ * Handle platform-level events (agency subscriptions to LeadFlow + direct user subscriptions)
  */
 async function handlePlatformEvent(event: Stripe.Event) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      // Handle invoice payments (not subscriptions)
+      // Handle invoice payments
       if (session.mode === "payment" && session.metadata?.type === "invoice_payment") {
         await handleInvoicePaymentComplete(session);
+      }
+      // Handle direct user subscription checkout
+      if (session.mode === "subscription" && session.metadata?.type === "direct_user_subscription") {
+        await handleDirectUserCheckoutComplete(session);
       }
       break;
     }
@@ -150,13 +155,23 @@ async function handlePlatformEvent(event: Stripe.Event) {
     case "customer.subscription.created":
     case "customer.subscription.updated": {
       const subscription = event.data.object as unknown as SubscriptionData;
-      await handleAgencySubscriptionChange(subscription);
+      // Check if this is a direct user subscription or agency subscription
+      if (subscription.metadata?.type === "direct_user_subscription" || subscription.metadata?.org_id) {
+        await handleDirectUserSubscriptionChange(subscription);
+      } else if (subscription.metadata?.agency_id) {
+        await handleAgencySubscriptionChange(subscription);
+      }
       break;
     }
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object as unknown as SubscriptionData;
-      await handleAgencySubscriptionCanceled(subscription);
+      // Check if this is a direct user subscription or agency subscription
+      if (subscription.metadata?.org_id && !subscription.metadata?.agency_id) {
+        await handleDirectUserSubscriptionCanceled(subscription);
+      } else if (subscription.metadata?.agency_id) {
+        await handleAgencySubscriptionCanceled(subscription);
+      }
       break;
     }
 
@@ -504,4 +519,105 @@ async function handleInvoiceFailed(
       updatedAt: new Date(),
     })
     .where(eq(clientSubscriptions.stripeSubscriptionId, invoice.subscription));
+}
+
+// ============================================
+// Direct User Subscription Handlers
+// ============================================
+
+/**
+ * Handle direct user checkout completion
+ */
+async function handleDirectUserCheckoutComplete(session: Stripe.Checkout.Session) {
+  const orgId = session.metadata?.org_id;
+  const tier = session.metadata?.tier as "pro" | "enterprise";
+
+  if (!orgId || !tier) {
+    console.error("Missing metadata in direct user checkout session");
+    return;
+  }
+
+  // Update org with subscription info
+  await db
+    .update(orgs)
+    .set({
+      subscriptionTier: tier,
+      subscriptionStatus: "active",
+      stripeSubscriptionId: session.subscription as string,
+      stripeCustomerId: session.customer as string,
+      updatedAt: new Date(),
+    })
+    .where(eq(orgs.id, parseInt(orgId)));
+
+  console.log(`[Stripe] Direct user subscription created for org ${orgId}: ${tier}`);
+}
+
+/**
+ * Handle direct user subscription changes
+ */
+async function handleDirectUserSubscriptionChange(subscription: SubscriptionData) {
+  const orgId = subscription.metadata?.org_id;
+  if (!orgId) {
+    console.error("No org_id in direct user subscription metadata");
+    return;
+  }
+
+  // Determine tier from price
+  const priceId = subscription.items.data[0]?.price.id;
+  let tier: "free" | "pro" | "enterprise" = "free";
+
+  // Check against environment variable price IDs
+  if (
+    priceId === process.env.STRIPE_PRICE_USER_PRO_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_USER_PRO_YEARLY
+  ) {
+    tier = "pro";
+  } else if (
+    priceId === process.env.STRIPE_PRICE_USER_ENTERPRISE_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_USER_ENTERPRISE_YEARLY
+  ) {
+    tier = "enterprise";
+  }
+
+  // Map Stripe status to our status
+  let status: "trialing" | "active" | "past_due" | "canceled" = "active";
+  if (subscription.status === "trialing") status = "trialing";
+  else if (subscription.status === "past_due") status = "past_due";
+  else if (subscription.status === "canceled" || subscription.status === "unpaid") {
+    status = "canceled";
+    tier = "free"; // Downgrade on cancel
+  }
+
+  await db
+    .update(orgs)
+    .set({
+      subscriptionTier: tier,
+      subscriptionStatus: status,
+      stripeSubscriptionId: subscription.id,
+      updatedAt: new Date(),
+    })
+    .where(eq(orgs.id, parseInt(orgId)));
+
+  console.log(`[Stripe] Direct user subscription updated for org ${orgId}: ${tier} (${status})`);
+}
+
+/**
+ * Handle direct user subscription cancellation
+ */
+async function handleDirectUserSubscriptionCanceled(subscription: SubscriptionData) {
+  const orgId = subscription.metadata?.org_id;
+  if (!orgId) return;
+
+  // Downgrade to free tier
+  await db
+    .update(orgs)
+    .set({
+      subscriptionTier: "free",
+      subscriptionStatus: "canceled",
+      stripeSubscriptionId: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(orgs.id, parseInt(orgId)));
+
+  console.log(`[Stripe] Direct user subscription canceled for org ${orgId}`);
 }

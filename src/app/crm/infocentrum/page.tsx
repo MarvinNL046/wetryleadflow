@@ -47,6 +47,8 @@ import {
   Package,
   Percent,
   MapPin,
+  Eye,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -556,19 +558,27 @@ Dit helpt je bottlenecks te identificeren in je sales proces.`,
 
 **Stappen:**
 1. Ga naar CRM Settings → Integraties
-2. Klik 'Verbinden' bij Meta Lead Ads
-3. Log in met je Facebook account
+2. Klik 'Verbinden met Facebook'
+3. Log in met je EIGEN Facebook account
 4. Geef LeadFlow toegang tot je pagina's
-5. Selecteer welke pagina's je wilt koppelen
+5. Pagina's worden automatisch geabonneerd op lead webhooks
+
+**Belangrijk - Eigen account:**
+- Je logt altijd in met je EIGEN Facebook/Meta account
+- De koppeling is gekoppeld aan jouw organisatie
+- Niemand anders kan jouw leads zien
+- Agencies en hun klanten hebben aparte koppelingen
 
 **Vereisten:**
 - Facebook Business account
-- Beheerder van de Facebook pagina
-- Actieve Lead Ads campagnes
+- Beheerder of adverteerder rol op de Facebook pagina
+- Actieve Lead Ads campagnes (of test formulieren)
 
 **Beveiliging:**
-- OAuth 2.0 authenticatie
-- Tokens worden versleuteld opgeslagen
+- OAuth 2.0 authenticatie via Facebook
+- Access tokens worden AES-256 versleuteld opgeslagen
+- Long-lived tokens (60+ dagen geldig)
+- Page tokens verlopen nooit
 - Je kunt de verbinding altijd verbreken`,
       },
       {
@@ -603,23 +613,61 @@ Dit helpt je bottlenecks te identificeren in je sales proces.`,
         content: `Leads worden real-time gesynchroniseerd:
 
 **Hoe het werkt:**
-1. Iemand vult een Lead Ad form in
-2. Meta stuurt een webhook naar LeadFlow
-3. LeadFlow verwerkt de lead binnen seconden
-4. Contact en opportunity worden automatisch aangemaakt
-5. Je ziet de nieuwe lead direct in je pipeline
+1. Iemand vult een Lead Ad form in op Facebook/Instagram
+2. Meta stuurt een beveiligde webhook naar LeadFlow
+3. LeadFlow verifieert de webhook signature (HMAC-SHA256)
+4. Lead wordt binnen seconden verwerkt
+5. Contact en opportunity worden automatisch aangemaakt
+6. Je ziet de nieuwe lead direct in je pipeline
+
+**Webhook beveiliging:**
+- Elke webhook wordt geverifieerd met HMAC-SHA256 signature
+- Alleen echte Meta webhooks worden geaccepteerd
+- Ongeldige requests worden geblokkeerd en gelogd
+- Timing-safe vergelijking voorkomt timing attacks
 
 **Tracking:**
-- Lead Gen ID (uniek)
+- Lead Gen ID (uniek per lead)
 - Pagina waarop de lead binnenkwam
 - Form dat werd ingevuld (met jouw aangepaste naam!)
 - Alle form velden en antwoorden
+- Campagne, ad set en ad ID
 - Timestamp van inzending
 
 **Lead attributie:**
 - Formulier naam als badge zichtbaar
 - Campagne, ad set en ad ID opgeslagen
-- UTM parameters (indien aanwezig)`,
+- UTM parameters (indien aanwezig)
+- Alles gekoppeld aan jouw organisatie`,
+      },
+      {
+        title: "Data isolatie",
+        icon: Lock,
+        content: `Elke Meta koppeling is volledig geïsoleerd:
+
+**Per organisatie:**
+- Elke organisatie heeft een eigen Meta koppeling
+- Tokens zijn gekoppeld aan jouw org ID
+- Leads komen alleen in jouw CRM
+- Andere gebruikers kunnen jouw data niet zien
+
+**Voor agencies:**
+- Agency heeft eigen Meta koppeling voor eigen leads
+- Elke agency klant heeft eigen Meta koppeling
+- Klant logt in met EIGEN Facebook account
+- Agency kan klant leads NIET zien (tenzij via impersonation)
+
+**Hoe het werkt:**
+1. Agency maakt account → eigen org + workspace
+2. Agency voegt klant toe → klant krijgt eigen org
+3. Klant koppelt Meta → koppeling voor klant org
+4. Leads gaan naar klant's pipeline
+
+**Beveiliging:**
+- Row Level Security op database niveau
+- Org ID filtering op alle queries
+- Encrypted token storage per organisatie
+- Audit logging van alle acties`,
       },
     ],
   },
@@ -696,6 +744,144 @@ Dit helpt je bottlenecks te identificeren in je sales proces.`,
 - Bekijk alle teamleden
 - Wijzig rollen
 - Verwijder toegang indien nodig`,
+      },
+    ],
+  },
+  {
+    id: "agency",
+    title: "Agency & White-label",
+    icon: Building2,
+    color: "violet",
+    description: "White-label CRM voor je klanten",
+    features: [
+      {
+        title: "Agency overzicht",
+        icon: Building2,
+        content: `LeadFlow biedt volledige white-label mogelijkheden voor agencies:
+
+**Wat is een Agency account?**
+- Een premium account waarmee je LeadFlow kunt aanbieden aan je klanten
+- Volledig aangepaste branding (logo, kleuren, app naam)
+- Eigen CRM workspace voor je eigen leads
+- Onbeperkt klanten beheren
+
+**Agency voordelen:**
+- Je eigen gebrande CRM platform
+- Klanten zien jouw branding, niet LeadFlow
+- Aparte workspaces per klant
+- Centrale factuuratie via jou
+- Client impersonation voor snelle support
+
+**Hoe werkt het?**
+1. Maak een agency account aan via /agency-signup
+2. Configureer je branding (logo, kleuren, app naam)
+3. Voeg klanten toe via het Clients menu
+4. Elke klant krijgt een eigen whitelabeled CRM`,
+      },
+      {
+        title: "Branding aanpassen",
+        icon: Palette,
+        content: `Pas je agency branding volledig aan:
+
+**Branding instellingen:**
+1. Ga naar Agency → Branding
+2. Upload je eigen logo
+3. Stel je primaire en secundaire kleuren in
+4. Pas de app naam aan (wat klanten zien)
+
+**Wat wordt aangepast:**
+- Logo in de sidebar
+- Navigatie kleuren
+- Buttons en accenten
+- Email headers (binnenkort)
+- Factuur branding
+
+**Best practices:**
+- Gebruik een logo met transparante achtergrond
+- Kies kleuren die bij je huisstijl passen
+- Houd de app naam kort en herkenbaar
+- Test in zowel light als dark mode`,
+      },
+      {
+        title: "Klanten beheren",
+        icon: Users,
+        content: `Beheer je agency klanten vanuit één dashboard:
+
+**Klant toevoegen:**
+1. Ga naar Agency → Clients
+2. Klik op 'Add Client'
+3. Voer de klantnaam in
+4. Een nieuwe workspace wordt automatisch aangemaakt
+
+**Per klant beschikbaar:**
+- Eigen contacten database
+- Eigen pipelines
+- Eigen analytics
+- Eigen team members
+
+**Impersonatie (Support modus):**
+- Klik op 'View as Client' bij een klant
+- Je ziet exact wat de klant ziet
+- Ideaal om snel issues te debuggen
+- Terug via de paarse banner bovenaan`,
+      },
+      {
+        title: "Client impersonation",
+        icon: Eye,
+        content: `Help je klanten sneller met de impersonation functie:
+
+**Wat is impersonation?**
+- Bekijk het CRM precies zoals je klant het ziet
+- Geen wachtwoorden of login gegevens nodig
+- Alle acties worden gelogd voor audit
+- Veilige manier om support te bieden
+
+**Hoe te gebruiken:**
+1. Ga naar Agency → Clients
+2. Zoek de klant die je wilt helpen
+3. Klik op het menu (3 puntjes)
+4. Selecteer 'View as Client'
+5. Je wordt automatisch doorgestuurd
+
+**Tijdens impersonation:**
+- Paarse banner toont wie je impersoneert
+- Je kunt alles doen wat de klant kan
+- Klik 'Back to Agency' om te stoppen
+- Sessie verloopt automatisch na 4 uur
+
+**Beveiliging - Belangrijk:**
+- Je kunt ALLEEN je eigen klanten impersoneren
+- Klanten van andere agencies zijn niet toegankelijk
+- Het systeem verifieert dat de klant bij jouw agency hoort
+- Pogingen om andere klanten te bekijken worden geblokkeerd
+
+**Audit & Logging:**
+- Alleen owners en admins kunnen impersoneren
+- Alle acties worden gelogd met timestamp
+- Audit trail is beschikbaar voor review
+- Cookie-gebaseerde sessie met automatisch verval`,
+      },
+      {
+        title: "Eigen leads beheren",
+        icon: Target,
+        content: `Als agency heb je ook een eigen CRM voor je leads:
+
+**Je eigen workspace:**
+- Automatisch aangemaakt bij agency registratie
+- Toegang via 'Go to CRM' in de Agency sidebar
+- Volledig gescheiden van klant data
+
+**Wat kun je doen:**
+- Je eigen leads toevoegen en beheren
+- Pipelines voor je eigen sales proces
+- Analytics van je eigen performance
+- Meta integratie voor je eigen advertenties
+
+**Verschil met klant workspaces:**
+- Je eigen workspace is niet whitelabeled
+- Klanten kunnen je workspace niet zien
+- Ideaal voor leads die je zelf opvolgt
+- Gescheiden rapportage en data`,
       },
     ],
   },
@@ -1029,6 +1215,14 @@ const faqCategories = [
       {
         q: "Worden alle formulier velden opgeslagen?",
         a: "Ja, alle velden die de lead invult worden opgeslagen. Je kunt ze mappen naar LeadFlow velden of ze blijven beschikbaar als ruwe data.",
+      },
+      {
+        q: "Kunnen agencies Meta koppelen voor hun klanten?",
+        a: "Nee, elke klant moet zelf inloggen met hun eigen Facebook account. Dit is hoe Meta OAuth werkt - je kunt alleen toegang krijgen tot je eigen pagina's. De agency heeft een aparte Meta koppeling voor hun eigen leads, en elke klant heeft een eigen koppeling. Dit zorgt voor veilige data isolatie.",
+      },
+      {
+        q: "Hoe veilig zijn de webhooks?",
+        a: "Zeer veilig. Elke webhook van Meta wordt geverifieerd met een HMAC-SHA256 signature. LeadFlow controleert of de webhook echt van Meta komt voordat deze wordt verwerkt. Ongeldige requests worden geblokkeerd en gelogd.",
       },
     ],
   },

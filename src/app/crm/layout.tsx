@@ -13,12 +13,43 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { AnnouncementsClient } from "@/components/announcements/announcements-client";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/crm", label: "Overview", icon: LayoutDashboard },
-  { href: "/crm/contacts", label: "Contacts", icon: Users },
-  { href: "/crm/pipelines", label: "Pipelines", icon: Kanban },
-  { href: "/crm/invoicing", label: "Facturatie", icon: Receipt },
-  { href: "/crm/analytics", label: "Analytics", icon: BarChart3 },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const navSections: NavSection[] = [
+  {
+    title: "Overzicht",
+    items: [
+      { href: "/crm", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "CRM",
+    items: [
+      { href: "/crm/contacts", label: "Contacts", icon: Users },
+      { href: "/crm/pipelines", label: "Pipelines", icon: Kanban },
+    ],
+  },
+  {
+    title: "Financiën",
+    items: [
+      { href: "/crm/invoicing", label: "Facturatie", icon: Receipt },
+    ],
+  },
+  {
+    title: "Inzichten",
+    items: [
+      { href: "/crm/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
 ];
 
 export default function CRMLayout({
@@ -76,30 +107,47 @@ export default function CRMLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="relative z-10 space-y-1 p-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== "/crm" && pathname.startsWith(item.href));
+        <nav className="relative z-10 space-y-4 p-4">
+          {navSections.map((section, sectionIndex) => (
+            <div key={section.title}>
+              {/* Section divider (not for first section) */}
+              {sectionIndex > 0 && (
+                <div className="mb-3 border-t border-zinc-200/50 dark:border-zinc-800/50" />
+              )}
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "active text-violet-600 dark:text-violet-400"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                )}
-              >
-                <item.icon className={cn(
-                  "h-4 w-4 transition-colors",
-                  isActive && "text-violet-500"
-                )} />
-                {item.label}
-              </Link>
-            );
-          })}
+              {/* Section title */}
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                {section.title}
+              </p>
+
+              {/* Section items */}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href ||
+                    (item.href !== "/crm" && pathname.startsWith(item.href));
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "dashboard-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "active text-violet-600 dark:text-violet-400"
+                          : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                      )}
+                    >
+                      <item.icon className={cn(
+                        "h-4 w-4 transition-colors",
+                        isActive && "text-violet-500"
+                      )} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Setup Checklist - shows if onboarding incomplete */}

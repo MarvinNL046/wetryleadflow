@@ -508,6 +508,12 @@ export const contacts = pgTable("contacts", {
   // Follow-up scheduling
   nextFollowUpAt: timestamp("next_follow_up_at"), // When to call again
   followUpEmailSent: boolean("follow_up_email_sent").default(false), // Track if 3-call email was sent
+  // Outside area / resale tracking
+  outsideArea: boolean("outside_area").default(false), // Lead is outside service area
+  forResale: boolean("for_resale").default(false), // Available for resale to other businesses
+  resaleStatus: varchar("resale_status", { length: 50 }), // "available", "pending", "sold"
+  resaleSoldAt: timestamp("resale_sold_at"), // When lead was sold
+  resaleNotes: text("resale_notes"), // Notes for resale
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -2427,3 +2433,123 @@ export type NewAiInsightsCache = typeof aiInsightsCache.$inferInsert;
 
 export type AiInsightFeedback = typeof aiInsightFeedback.$inferSelect;
 export type NewAiInsightFeedback = typeof aiInsightFeedback.$inferInsert;
+
+// ============================================
+// Platform Lead Pool (System-wide Lost Leads)
+// ============================================
+// This table stores leads that are "lost" from their original workspace
+// but available for resale to other businesses by the platform admin.
+// Completely isolated from workspace RLS - only super-admin access.
+
+export const platformLeadPoolStatusEnum = pgEnum("platform_lead_pool_status", [
+  "available",    // New, not yet claimed
+  "reserved",     // Reserved by a potential buyer
+  "sold",         // Successfully sold to another business
+  "expired",      // No longer available (too old, etc.)
+  "withdrawn",    // Removed by admin
+]);
+
+export const platformLeadsPool = pgTable("platform_leads_pool", {
+  id: serial("id").primaryKey(),
+
+  // Reference to original contact (nullable in case contact is deleted)
+  originalContactId: integer("original_contact_id").references(() => contacts.id, { onDelete: "set null" }),
+
+  // Source tracking - where did this lead come from
+  sourceWorkspaceId: integer("source_workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+  sourceOrgId: integer("source_org_id").references(() => orgs.id, { onDelete: "set null" }),
+  sourceAgencyId: integer("source_agency_id").references(() => agencies.id, { onDelete: "set null" }),
+
+  // Denormalized lead data (preserved even if original is deleted)
+  firstName: varchar("first_name", { length: 255 }),
+  lastName: varchar("last_name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  company: varchar("company", { length: 255 }),
+  street: varchar("street", { length: 255 }),
+  houseNumber: varchar("house_number", { length: 20 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  city: varchar("city", { length: 255 }),
+  province: varchar("province", { length: 255 }),
+  country: varchar("country", { length: 100 }),
+
+  // Categorization
+  label: varchar("label", { length: 255 }), // e.g., "Buiten werkgebied", "Te ver"
+  reason: varchar("reason", { length: 255 }), // Why it became available (outside_area, not_interested, etc.)
+  notes: text("notes"), // Admin notes
+
+  // Status tracking
+  status: platformLeadPoolStatusEnum("status").default("available").notNull(),
+
+  // Sale information
+  soldToOrgId: integer("sold_to_org_id").references(() => orgs.id, { onDelete: "set null" }),
+  soldToWorkspaceId: integer("sold_to_workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+  soldToAgencyId: integer("sold_to_agency_id").references(() => agencies.id, { onDelete: "set null" }),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  soldAt: timestamp("sold_at"),
+  soldById: integer("sold_by_id").references(() => users.id, { onDelete: "set null" }),
+
+  // Reservation (for pending sales)
+  reservedUntil: timestamp("reserved_until"),
+  reservedById: integer("reserved_by_id").references(() => users.id, { onDelete: "set null" }),
+
+  // Audit trail
+  addedById: integer("added_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("platform_leads_pool_status_idx").on(table.status),
+  index("platform_leads_pool_source_org_idx").on(table.sourceOrgId),
+  index("platform_leads_pool_source_agency_idx").on(table.sourceAgencyId),
+  index("platform_leads_pool_city_idx").on(table.city),
+  index("platform_leads_pool_postal_idx").on(table.postalCode),
+  index("platform_leads_pool_created_idx").on(table.createdAt),
+  index("platform_leads_pool_sold_to_idx").on(table.soldToOrgId),
+]);
+
+export const platformLeadsPoolRelations = relations(platformLeadsPool, ({ one }) => ({
+  originalContact: one(contacts, {
+    fields: [platformLeadsPool.originalContactId],
+    references: [contacts.id],
+  }),
+  sourceWorkspace: one(workspaces, {
+    fields: [platformLeadsPool.sourceWorkspaceId],
+    references: [workspaces.id],
+  }),
+  sourceOrg: one(orgs, {
+    fields: [platformLeadsPool.sourceOrgId],
+    references: [orgs.id],
+  }),
+  sourceAgency: one(agencies, {
+    fields: [platformLeadsPool.sourceAgencyId],
+    references: [agencies.id],
+  }),
+  soldToOrg: one(orgs, {
+    fields: [platformLeadsPool.soldToOrgId],
+    references: [orgs.id],
+  }),
+  soldToWorkspace: one(workspaces, {
+    fields: [platformLeadsPool.soldToWorkspaceId],
+    references: [workspaces.id],
+  }),
+  soldToAgency: one(agencies, {
+    fields: [platformLeadsPool.soldToAgencyId],
+    references: [agencies.id],
+  }),
+  addedBy: one(users, {
+    fields: [platformLeadsPool.addedById],
+    references: [users.id],
+  }),
+  soldBy: one(users, {
+    fields: [platformLeadsPool.soldById],
+    references: [users.id],
+  }),
+  reservedBy: one(users, {
+    fields: [platformLeadsPool.reservedById],
+    references: [users.id],
+  }),
+}));
+
+// Platform Leads Pool types
+export type PlatformLeadPool = typeof platformLeadsPool.$inferSelect;
+export type NewPlatformLeadPool = typeof platformLeadsPool.$inferInsert;

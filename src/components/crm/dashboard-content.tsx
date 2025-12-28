@@ -182,6 +182,7 @@ export function CRMDashboard({
       >
         <IncomingLeads
           leads={newLeads}
+          pipelines={pipelines}
           callbackPeriods={callbackPeriods}
           maxCallAttempts={maxCallAttempts}
         />

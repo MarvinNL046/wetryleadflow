@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Plus, Users, ExternalLink, MoreHorizontal } from "lucide-react";
+import { Building2, Plus, Users, ExternalLink, MoreHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClientOrg, getAgencyClients } from "@/lib/actions/agency";
+import { startAgencyClientImpersonation } from "@/lib/auth/agency-client-impersonate";
 import { useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -193,6 +194,10 @@ export default function AgencyClientsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => startAgencyClientImpersonation(client.id)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View as Client
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push(`/org/${client.slug}`)}>
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Open CRM

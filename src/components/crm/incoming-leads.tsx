@@ -5,6 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -33,6 +43,9 @@ import {
   Send,
   Megaphone,
   MapPin,
+  MapPinOff,
+  MessageSquare,
+  Kanban,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -67,19 +80,27 @@ interface CallbackPeriod {
   enabled: boolean;
 }
 
+interface Pipeline {
+  id: number;
+  name: string;
+}
+
 interface IncomingLeadsProps {
   leads: Lead[];
+  pipelines?: Pipeline[]; // Available pipelines for selection
   callbackPeriods?: CallbackPeriod[]; // From CRM settings
   maxCallAttempts?: number; // From CRM settings (for badge display)
 }
 
-type DialogView = "main" | "answered_options" | "callback_options";
+type DialogView = "main" | "answered_options" | "callback_options" | "send_message" | "outside_area_message";
 type ActionType =
   | "not_answered"
   | "schedule_now"
   | "callback_later"
   | "not_interested"
-  | "invalid_number";
+  | "invalid_number"
+  | "outside_area"
+  | "send_message";
 
 // Default callback periods (used if none configured)
 const DEFAULT_CALLBACK_PERIODS: CallbackPeriod[] = [
@@ -91,6 +112,7 @@ const DEFAULT_CALLBACK_PERIODS: CallbackPeriod[] = [
 
 export function IncomingLeads({
   leads: initialLeads,
+  pipelines = [],
   callbackPeriods,
   maxCallAttempts = 3,
 }: IncomingLeadsProps) {
@@ -134,16 +156,42 @@ export function IncomingLeads({
   const [dialogView, setDialogView] = useState<DialogView>("main");
   const [, startTransition] = useTransition();
   const [isCreatingLead, setIsCreatingLead] = useState(false);
+  const [outsideAreaMessage, setOutsideAreaMessage] = useState("");
+  const [outsideAreaLabel, setOutsideAreaLabel] = useState("");
+  // Pipeline selection - only relevant when multiple pipelines exist
+  const [selectedPipelineId, setSelectedPipelineId] = useState<number | null>(
+    pipelines.length === 1 ? pipelines[0].id : null
+  );
 
   function openLeadDialog(lead: Lead) {
     setSelectedLead(lead);
     setDialogView("main");
+    // Reset outside area fields
+    setOutsideAreaMessage("");
+    setOutsideAreaLabel("");
+    // Reset pipeline selection (auto-select if only one pipeline)
+    setSelectedPipelineId(pipelines.length === 1 ? pipelines[0].id : null);
   }
 
   function closeDialog() {
     setSelectedLead(null);
     setProcessingAction(null);
     setDialogView("main");
+    setOutsideAreaMessage("");
+    setOutsideAreaLabel("");
+    setSelectedPipelineId(pipelines.length === 1 ? pipelines[0].id : null);
+  }
+
+  // Generate default outside area message template
+  function getDefaultOutsideAreaMessage(lead: Lead): string {
+    const name = lead.firstName || "klant";
+    return `Beste ${name},
+
+Bedankt voor uw interesse! Helaas valt uw locatie buiten ons huidige werkgebied, waardoor wij u op dit moment niet van dienst kunnen zijn.
+
+Mocht dit in de toekomst veranderen, nemen wij graag contact met u op.
+
+Met vriendelijke groet`;
   }
 
   async function handleAction(action: ActionType, callbackDays?: number) {
@@ -156,10 +204,11 @@ export function IncomingLeads({
         contactId: selectedLead.id,
         action,
         callbackDays,
+        pipelineId: selectedPipelineId ?? undefined,
       });
 
       // Remove from list for completed/scheduled actions
-      if (action === "schedule_now" || action === "not_interested" || action === "invalid_number" || action === "callback_later") {
+      if (action === "schedule_now" || action === "not_interested" || action === "invalid_number" || action === "callback_later" || action === "outside_area") {
         // All these remove the lead from the queue
         setLeads((prev) => prev.filter((lead) => lead.id !== selectedLead.id));
       } else if (action === "not_answered") {
@@ -183,6 +232,68 @@ export function IncomingLeads({
       });
     } catch (error) {
       console.error("Error processing lead:", error);
+      alert("Er ging iets mis: " + (error as Error).message);
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function handleSendMessage(template: "contact_request" | "info_request") {
+    if (!selectedLead) return;
+
+    const processingKey = `send_message_${template}`;
+    setProcessingAction(processingKey);
+    try {
+      await processLead({
+        contactId: selectedLead.id,
+        action: "send_message",
+        messageContent: template,
+        pipelineId: selectedPipelineId ?? undefined,
+      });
+
+      // Keep lead in list but update status
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === selectedLead.id
+            ? { ...lead, lastCallResult: "send_message" }
+            : lead
+        )
+      );
+
+      closeDialog();
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Er ging iets mis bij het versturen: " + (error as Error).message);
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function handleOutsideAreaMessage(sendEmail: boolean = true) {
+    if (!selectedLead) return;
+
+    setProcessingAction("outside_area_message");
+    try {
+      await processLead({
+        contactId: selectedLead.id,
+        action: "outside_area",
+        messageContent: sendEmail ? outsideAreaMessage : undefined,
+        notes: outsideAreaLabel || undefined,
+        pipelineId: selectedPipelineId ?? undefined,
+      });
+
+      // Remove from list - lead goes to Lost stage
+      setLeads((prev) => prev.filter((lead) => lead.id !== selectedLead.id));
+
+      closeDialog();
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      console.error("Error processing outside area:", error);
       alert("Er ging iets mis: " + (error as Error).message);
     } finally {
       setProcessingAction(null);
@@ -480,9 +591,61 @@ export function IncomingLeads({
             </p>
           )}
 
+          {/* Pipeline Selector - Only show when multiple pipelines exist */}
+          {pipelines.length > 1 && (
+            <div className="rounded-lg border border-violet-200 bg-violet-50/50 p-3 dark:border-violet-800 dark:bg-violet-950/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Kanban className="h-4 w-4 text-violet-500" />
+                <Label className="text-sm font-medium text-violet-700 dark:text-violet-400">
+                  Pipeline
+                </Label>
+              </div>
+              <Select
+                value={selectedPipelineId?.toString() ?? ""}
+                onValueChange={(value) => setSelectedPipelineId(parseInt(value))}
+              >
+                <SelectTrigger className="w-full bg-white dark:bg-zinc-900">
+                  <SelectValue placeholder="Selecteer een pipeline..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {pipelines.map((pipeline) => (
+                    <SelectItem key={pipeline.id} value={pipeline.id.toString()}>
+                      {pipeline.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!selectedPipelineId && (
+                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                  ⚠️ Selecteer een pipeline om de lead toe te wijzen
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Main View - Initial Buttons */}
           {dialogView === "main" && (
             <div className="grid gap-3 pt-2">
+              {/* Buiten Gebied - visible first since location is visible before calling */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  // Pre-fill default message and label when opening outside area view
+                  if (selectedLead) {
+                    setOutsideAreaMessage(getDefaultOutsideAreaMessage(selectedLead));
+                    setOutsideAreaLabel("Buiten werkgebied");
+                  }
+                  setDialogView("outside_area_message");
+                }}
+                disabled={processingAction !== null}
+                className="h-12 border-orange-500/50 text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-500/10"
+              >
+                <MapPinOff className="mr-2 h-5 w-5" />
+                Buiten Gebied
+                <ArrowLeft className="ml-auto h-4 w-4 rotate-180 opacity-50" />
+              </Button>
+
               {/* Opgenomen - opens sub-menu */}
               <Button
                 type="button"
@@ -586,6 +749,24 @@ export function IncomingLeads({
                   </Button>
                 )}
 
+                {/* Bericht Sturen */}
+                {selectedLead?.email && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogView("send_message")}
+                    disabled={processingAction !== null}
+                    className="h-14 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                  >
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    <div className="text-left flex-1">
+                      <span className="block font-semibold">Bericht Sturen</span>
+                      <span className="block text-xs opacity-70">Stuur een email</span>
+                    </div>
+                    <ArrowLeft className="h-4 w-4 rotate-180 opacity-50" />
+                  </Button>
+                )}
+
                 {/* Geen Interesse */}
                 <Button
                   type="button"
@@ -651,6 +832,183 @@ export function IncomingLeads({
                 type="button"
                 variant="ghost"
                 onClick={() => setDialogView("answered_options")}
+                disabled={processingAction !== null}
+                className="w-full h-10 text-zinc-500"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Terug
+              </Button>
+            </div>
+          )}
+
+          {/* Send Message View */}
+          {dialogView === "send_message" && (
+            <div className="space-y-4 pt-2">
+              <p className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                Stuur een bericht naar {selectedLead?.firstName || "deze lead"}
+              </p>
+
+              <div className="rounded-lg bg-emerald-50/50 border border-emerald-200 p-3 dark:bg-emerald-950/20 dark:border-emerald-800">
+                <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                  <Mail className="h-4 w-4" />
+                  <span>{selectedLead?.email}</span>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {/* Quick message templates */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSendMessage("contact_request")}
+                  disabled={processingAction !== null}
+                  className="h-14 border-emerald-500/50 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                >
+                  {processingAction === "send_message_contact_request" ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-5 w-5" />
+                  )}
+                  <div className="text-left">
+                    <span className="block font-semibold">Neem Contact Op</span>
+                    <span className="block text-xs opacity-70">Vraag om terugbelverzoek</span>
+                  </div>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSendMessage("info_request")}
+                  disabled={processingAction !== null}
+                  className="h-14 border-blue-500/50 text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                >
+                  {processingAction === "send_message_info_request" ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                  )}
+                  <div className="text-left">
+                    <span className="block font-semibold">Meer Informatie</span>
+                    <span className="block text-xs opacity-70">Stuur productinformatie</span>
+                  </div>
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDialogView("answered_options")}
+                disabled={processingAction !== null}
+                className="w-full h-10 text-zinc-500"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Terug
+              </Button>
+            </div>
+          )}
+
+          {/* Outside Area Message View */}
+          {dialogView === "outside_area_message" && (
+            <div className="space-y-4 pt-2">
+              {/* Label input */}
+              <div className="space-y-2">
+                <Label htmlFor="outside-area-label" className="text-sm font-medium">
+                  Label / Notitie (optioneel)
+                </Label>
+                <Input
+                  id="outside-area-label"
+                  placeholder="bijv. Rotterdam, te ver weg"
+                  value={outsideAreaLabel}
+                  onChange={(e) => setOutsideAreaLabel(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {selectedLead?.email ? (
+                <>
+                  {/* Email recipient */}
+                  <div className="rounded-lg bg-zinc-100/80 p-3 dark:bg-zinc-800/50">
+                    <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      <Mail className="h-4 w-4" />
+                      <span>{selectedLead.email}</span>
+                    </div>
+                  </div>
+
+                  {/* Custom message textarea */}
+                  <div className="space-y-2">
+                    <Label htmlFor="outside-area-message" className="text-sm font-medium">
+                      Bericht aan lead
+                    </Label>
+                    <Textarea
+                      id="outside-area-message"
+                      placeholder="Schrijf je bericht..."
+                      value={outsideAreaMessage}
+                      onChange={(e) => setOutsideAreaMessage(e.target.value)}
+                      rows={6}
+                      className="resize-none"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => handleOutsideAreaMessage(true)}
+                    disabled={processingAction !== null || !outsideAreaMessage.trim()}
+                    className="w-full h-14 bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:from-orange-700 hover:to-amber-700"
+                  >
+                    {processingAction === "outside_area_message" ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-5 w-5" />
+                    )}
+                    <div className="text-left">
+                      <span className="block font-semibold">Verstuur & Markeer als Verloren</span>
+                      <span className="block text-xs opacity-80">Email versturen naar lead</span>
+                    </div>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOutsideAreaMessage(false)}
+                    disabled={processingAction !== null}
+                    className="w-full h-10 border-zinc-300 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400"
+                  >
+                    <MapPinOff className="mr-2 h-4 w-4" />
+                    Alleen markeren (zonder email)
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg bg-zinc-100/80 p-3 dark:bg-zinc-800/50">
+                    <div className="flex items-center gap-2 text-sm text-zinc-500">
+                      <Mail className="h-4 w-4" />
+                      <span>Geen e-mailadres beschikbaar</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => handleOutsideAreaMessage(false)}
+                    disabled={processingAction !== null}
+                    className="w-full h-14 bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:from-orange-700 hover:to-amber-700"
+                  >
+                    {processingAction === "outside_area_message" ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <MapPinOff className="mr-2 h-5 w-5" />
+                    )}
+                    <div className="text-left">
+                      <span className="block font-semibold">Markeer als Verloren</span>
+                      <span className="block text-xs opacity-80">Lead buiten werkgebied</span>
+                    </div>
+                  </Button>
+                </>
+              )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDialogView("main")}
                 disabled={processingAction !== null}
                 className="w-full h-10 text-zinc-500"
               >

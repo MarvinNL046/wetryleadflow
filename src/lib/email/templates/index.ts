@@ -9,6 +9,7 @@ export { NewLeadEmail } from "./new-lead";
 export { DealStatusEmail } from "./deal-status";
 export { FollowUpReminderEmail } from "./follow-up-reminder";
 export { FarewellEmail } from "./farewell";
+export { OutsideAreaEmail } from "./outside-area";
 
 // Automation & System
 export { AutomationStatusEmail } from "./automation-status";

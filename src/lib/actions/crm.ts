@@ -12,6 +12,7 @@ import {
   notes,
   leadAttribution,
   metaForms,
+  workspaces,
 } from "@/lib/db/schema";
 import { requireAuthContext } from "@/lib/auth/context";
 import {
@@ -25,6 +26,7 @@ import { publishContactEvent, publishOpportunityEvent } from "@/lib/outbox";
 import { OutboxEventTypes } from "@/lib/outbox/constants";
 import { getCrmSettingsByWorkspaceId } from "@/lib/actions/crm-settings";
 import type { CrmSettingsData } from "@/lib/types/crm-settings";
+import { sendEmail, OutsideAreaEmail } from "@/lib/email";
 
 // ============================================
 // Contacts
@@ -836,6 +838,9 @@ export async function getNewLeads() {
 
   // Filter leads that need action today
   const newLeads = result.filter(contact => {
+    // Exclude leads marked as outside area (they go to Lost and are available for resale)
+    if (contact.outsideArea) return false;
+
     // 1. New leads with no opportunities
     if (contact.opportunities.length === 0) return true;
 
@@ -901,10 +906,11 @@ export async function getNewLeads() {
 
 export async function processLead(data: {
   contactId: number;
-  action: "not_answered" | "schedule_now" | "callback_later" | "not_interested" | "invalid_number";
+  action: "not_answered" | "schedule_now" | "callback_later" | "not_interested" | "invalid_number" | "outside_area" | "send_message";
   pipelineId?: number;
   notes?: string;
   callbackDays?: number; // For callback_later: 7, 30, 90, 180 days
+  messageContent?: string; // For send_message action
 }) {
   const ctx = await requireAuthContext();
 
@@ -926,8 +932,9 @@ export async function processLead(data: {
     throw new Error("Contact not found");
   }
 
-  // Track call attempt (increment on most call actions)
-  const shouldIncrementCallCount = data.action !== "schedule_now" && data.action !== "not_interested";
+  // Track call attempt (increment on most call actions, not for outside_area or send_message)
+  const noCallCountActions = ["schedule_now", "not_interested", "outside_area", "send_message"];
+  const shouldIncrementCallCount = !noCallCountActions.includes(data.action);
   const newCallCount = shouldIncrementCallCount
     ? (contact.callCount ?? 0) + 1
     : (contact.callCount ?? 0);
@@ -961,16 +968,71 @@ export async function processLead(data: {
   }
 
   // Update contact with call tracking and follow-up
+  const updateData: Record<string, unknown> = {
+    callCount: newCallCount,
+    lastCallAt: new Date(),
+    lastCallResult: data.action,
+    nextFollowUpAt: nextFollowUpAt,
+    updatedAt: new Date(),
+  };
+
+  // Handle outside_area action - mark for resale and save notes
+  if (data.action === "outside_area") {
+    updateData.outsideArea = true;
+    updateData.forResale = true;
+    updateData.resaleStatus = "available";
+    updateData.nextFollowUpAt = null; // No follow-up needed
+    if (data.notes) {
+      updateData.resaleNotes = data.notes; // Save the label/notes
+    }
+  }
+
   await db
     .update(contacts)
-    .set({
-      callCount: newCallCount,
-      lastCallAt: new Date(),
-      lastCallResult: data.action,
-      nextFollowUpAt: nextFollowUpAt,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(contacts.id, data.contactId));
+
+  // Send outside area notification email with custom message
+  if (data.action === "outside_area" && data.messageContent && contact.email) {
+    // Get org info for the email
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, ctx.workspace.id),
+      with: { org: true },
+    });
+
+    const companyName = workspace?.org?.name || "Ons bedrijf";
+
+    await sendEmail({
+      to: contact.email,
+      subject: `Bericht over uw aanvraag - ${companyName}`,
+      template: OutsideAreaEmail({
+        contactName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Klant",
+        companyName,
+        orgName: companyName,
+        customMessage: data.messageContent, // Pass custom message
+      }),
+      templateName: "outside-area",
+      context: { orgId: ctx.org.id, workspaceId: ctx.workspace.id },
+      relatedEntity: { type: "contact", id: contact.id },
+    });
+  }
+
+  // Add to platform leads pool for super-admin resale (server-side only)
+  if (data.action === "outside_area") {
+    try {
+      const { addLeadToPool } = await import("@/lib/actions/admin");
+      await addLeadToPool({
+        contactId: contact.id,
+        workspaceId: ctx.workspace.id,
+        label: data.notes || "Buiten werkgebied",
+        reason: "outside_area",
+        notes: data.messageContent ? "Email verstuurd" : undefined,
+      });
+    } catch (error) {
+      // Log but don't fail the main action if pool addition fails
+      console.error("Failed to add lead to platform pool:", error);
+    }
+  }
 
   // Auto-email trigger for:
   // 1. After max unsuccessful calls (if sendEmailOnLost is enabled)
@@ -1106,6 +1168,7 @@ export async function processLead(data: {
       callback_later: ["wachtrij", "terugbellen", "callback", "waiting", "queue"],
       not_interested: ["niet geïnteresseerd", "not interested"],
       invalid_number: ["verloren", "lost"],
+      outside_area: ["verloren", "lost"], // Outside area leads go to Lost
     };
 
     const patterns = actionStageMap[data.action] || [];
@@ -1120,6 +1183,7 @@ export async function processLead(data: {
         callback_later: 3,    // Wachtrij
         not_interested: 5,    // Niet Geïnteresseerd
         invalid_number: 7,    // Verloren
+        outside_area: 7,      // Verloren (same as invalid_number)
       };
       const order = fallbackOrder[data.action] ?? 0;
       targetStage = stages[Math.min(order, stages.length - 1)] || stages[0];

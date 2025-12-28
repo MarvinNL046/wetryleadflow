@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { webhookEvents, metaPages, metaLeadRaw } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Client } from "@upstash/qstash";
+import { verifyWebhookSignature } from "@/lib/integrations/meta/client";
 
 // Verify token for Meta webhook subscription
 const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+
+// Skip signature verification in development (Meta can't reach localhost)
+const SKIP_SIGNATURE_IN_DEV = process.env.NODE_ENV === "development";
 
 // QStash client for async processing
 const qstash = process.env.QSTASH_TOKEN
@@ -48,7 +52,39 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const body = await request.json();
+    // Get raw body for signature verification
+    const rawBody = await request.text();
+
+    // Verify webhook signature (security critical)
+    const signature = request.headers.get("X-Hub-Signature-256");
+
+    if (!SKIP_SIGNATURE_IN_DEV) {
+      const isValidSignature = verifyWebhookSignature(rawBody, signature);
+
+      if (!isValidSignature) {
+        console.error("[Meta Webhook] Invalid signature - rejecting request", {
+          hasSignature: !!signature,
+          signaturePrefix: signature?.substring(0, 20),
+          bodyLength: rawBody.length,
+          ip: request.headers.get("x-forwarded-for") || "unknown",
+          userAgent: request.headers.get("user-agent"),
+        });
+
+        // Return 401 Unauthorized for invalid signatures
+        // This helps identify attacks in logs
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 401 }
+        );
+      }
+
+      console.log("[Meta Webhook] Signature verified successfully");
+    } else {
+      console.log("[Meta Webhook] Skipping signature verification (development mode)");
+    }
+
+    // Parse JSON after signature verification
+    const body = JSON.parse(rawBody);
 
     // Meta sends events in batches within an "entry" array
     const { object, entry } = body;
@@ -227,9 +263,25 @@ export async function POST(request: NextRequest) {
     // Always respond quickly with 200 to acknowledge receipt
     return NextResponse.json({ received: true, count: eventsToProcess.length });
   } catch (error) {
-    console.error("[Meta Webhook] Error processing event:", error);
+    // Log detailed error information for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
 
-    // Still return 200 to prevent Meta from retrying
+    console.error("[Meta Webhook] Error processing event:", {
+      message: errorMessage,
+      stack: errorStack,
+      ip: request.headers.get("x-forwarded-for") || "unknown",
+    });
+
+    // For JSON parse errors, return 400
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+
+    // Still return 200 for other errors to prevent Meta from retrying
     // We'll handle errors in our own retry mechanism
     return NextResponse.json({ received: true, error: "Internal processing error" });
   }

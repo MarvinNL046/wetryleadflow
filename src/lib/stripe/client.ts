@@ -69,3 +69,51 @@ export const AGENCY_TIERS = {
 } as const;
 
 export type AgencyTier = keyof typeof AGENCY_TIERS;
+
+// LeadFlow direct user tier prices (for ZZP/MKB users, not via agency)
+export const USER_TIERS = {
+  free: {
+    name: "Free",
+    price: 0,
+    currency: "EUR",
+    features: [
+      "Tot 100 contacten",
+      "1 pipeline",
+      "Basis CRM functies",
+      "Community support",
+    ],
+    stripePriceId: null,
+  },
+  pro: {
+    name: "Pro",
+    price: 29,
+    currency: "EUR",
+    features: [
+      "Onbeperkt contacten",
+      "Onbeperkt pipelines",
+      "AI Insights",
+      "Meta Lead Ads integratie",
+      "Automatische follow-ups",
+      "Email support",
+    ],
+    stripePriceIdMonthly: process.env.STRIPE_PRICE_USER_PRO_MONTHLY,
+    stripePriceIdYearly: process.env.STRIPE_PRICE_USER_PRO_YEARLY,
+  },
+  enterprise: {
+    name: "Enterprise",
+    price: 99,
+    currency: "EUR",
+    features: [
+      "Alles in Pro",
+      "Geavanceerde analytics",
+      "Custom integraties",
+      "Dedicated support",
+      "SLA garantie",
+      "Multi-workspace",
+    ],
+    stripePriceIdMonthly: process.env.STRIPE_PRICE_USER_ENTERPRISE_MONTHLY,
+    stripePriceIdYearly: process.env.STRIPE_PRICE_USER_ENTERPRISE_YEARLY,
+  },
+} as const;
+
+export type UserTier = keyof typeof USER_TIERS;

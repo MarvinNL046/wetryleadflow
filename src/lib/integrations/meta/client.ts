@@ -3,8 +3,64 @@
  * Handles communication with Facebook/Meta APIs
  */
 
+import { createHmac, timingSafeEqual } from "crypto";
+
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
+
+/**
+ * Verify the X-Hub-Signature-256 header from Meta webhooks
+ * This ensures the webhook request is genuinely from Meta
+ *
+ * @param rawBody - The raw request body as a string
+ * @param signature - The X-Hub-Signature-256 header value (format: "sha256=HASH")
+ * @returns true if signature is valid, false otherwise
+ */
+export function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null
+): boolean {
+  const appSecret = process.env.META_APP_SECRET;
+
+  if (!appSecret) {
+    console.error("[Meta Webhook] META_APP_SECRET not configured");
+    return false;
+  }
+
+  if (!signature) {
+    console.warn("[Meta Webhook] No X-Hub-Signature-256 header present");
+    return false;
+  }
+
+  // Signature format: "sha256=HASH"
+  const [algorithm, hash] = signature.split("=");
+
+  if (algorithm !== "sha256" || !hash) {
+    console.warn("[Meta Webhook] Invalid signature format:", signature);
+    return false;
+  }
+
+  // Calculate expected signature
+  const expectedSignature = createHmac("sha256", appSecret)
+    .update(rawBody, "utf8")
+    .digest("hex");
+
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    const hashBuffer = Buffer.from(hash, "hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+    if (hashBuffer.length !== expectedBuffer.length) {
+      console.warn("[Meta Webhook] Signature length mismatch");
+      return false;
+    }
+
+    return timingSafeEqual(hashBuffer, expectedBuffer);
+  } catch (error) {
+    console.error("[Meta Webhook] Signature verification error:", error);
+    return false;
+  }
+}
 
 export interface MetaLeadField {
   name: string;
