@@ -382,7 +382,7 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [previewScale, setPreviewScale] = useState(120);
+  const [previewScale, setPreviewScale] = useState(150);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -928,7 +928,7 @@ export default function BrandingPage() {
                 <input
                   type="range"
                   min="60"
-                  max="150"
+                  max="200"
                   value={previewScale}
                   onChange={(e) => setPreviewScale(Number(e.target.value))}
                   className="w-32 h-1.5 bg-zinc-300 rounded-lg appearance-none cursor-pointer accent-violet-600"
