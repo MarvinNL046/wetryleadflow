@@ -36,6 +36,9 @@ export const AuditActions = {
   ORG_DELETED: "org.deleted",
   WORKSPACE_CREATED: "workspace.created",
   WORKSPACE_UPDATED: "workspace.updated",
+  // Notification Preferences
+  NOTIFICATION_PREFERENCE_CREATED: "notification_preference.created",
+  NOTIFICATION_PREFERENCE_UPDATED: "notification_preference.updated",
 } as const;
 
 export type AuditAction = (typeof AuditActions)[keyof typeof AuditActions];
@@ -52,6 +55,7 @@ export const EntityTypes = {
   MEMBERSHIP: "membership",
   ORG: "org",
   WORKSPACE: "workspace",
+  NOTIFICATION_PREFERENCE: "notification_preference",
 } as const;
 
 export type EntityType = (typeof EntityTypes)[keyof typeof EntityTypes];

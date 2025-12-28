@@ -107,12 +107,12 @@ export default async function CRMSettingsPage() {
           external: false,
         },
         {
-          href: "#",
+          href: "/crm/settings/notifications",
           icon: Bell,
           title: "Notificaties",
           description: "Stel in wanneer je meldingen ontvangt",
           color: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
-          comingSoon: true,
+          external: false,
         },
         {
           href: "#",

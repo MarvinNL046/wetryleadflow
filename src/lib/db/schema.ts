@@ -2613,3 +2613,64 @@ export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
 // Email Templates types
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type NewEmailTemplate = typeof emailTemplates.$inferInsert;
+
+// ============================================
+// Notification Preferences (Per-Workspace Email Settings)
+// ============================================
+export const notificationEventEnum = pgEnum("notification_event", [
+  // Lead events
+  "new_lead",              // New lead received (Meta, API, manual)
+  "lead_assigned",         // Lead/opportunity assigned to user
+  // Follow-up events
+  "follow_up_reminder",    // Follow-up reminder
+  "lead_lost",             // Lead marked as lost after max attempts
+  // Invoicing events
+  "invoice_sent",          // Invoice sent to customer
+  "invoice_reminder",      // Payment reminder
+  "quote_sent",            // Quotation sent
+  // Team events
+  "team_invite",           // Team member invited
+  "welcome",               // Welcome email for new users
+]);
+
+export const notificationModeEnum = pgEnum("notification_mode", [
+  "disabled",        // Don't send email
+  "system_default",  // Use built-in system template
+  "custom_template", // Use custom workspace template
+]);
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  // Event configuration
+  eventType: notificationEventEnum("event_type").notNull(),
+  // How to handle this event
+  mode: notificationModeEnum("mode").default("system_default").notNull(),
+  // Custom template (only used when mode = custom_template)
+  customTemplateId: integer("custom_template_id").references(() => emailTemplates.id, { onDelete: "set null" }),
+  // Additional settings
+  emailEnabled: boolean("email_enabled").default(true).notNull(),
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("notification_pref_workspace_idx").on(table.workspaceId),
+  uniqueIndex("notification_pref_workspace_event_idx").on(table.workspaceId, table.eventType),
+]);
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [notificationPreferences.workspaceId],
+    references: [workspaces.id],
+  }),
+  customTemplate: one(emailTemplates, {
+    fields: [notificationPreferences.customTemplateId],
+    references: [emailTemplates.id],
+  }),
+}));
+
+// Notification Preferences types
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type NewNotificationPreference = typeof notificationPreferences.$inferInsert;
