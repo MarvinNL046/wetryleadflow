@@ -599,16 +599,16 @@ export default function WorkspaceBrandingPage() {
                     <p className="text-zinc-500">Hierbij ontvangt u factuur...</p>
                   </div>
 
-                  {/* Button */}
+                  {/* Button (preview only - not clickable) */}
                   <div className="mt-4 text-center">
-                    <button
-                      className="rounded-lg px-6 py-2 text-sm font-medium text-white"
+                    <span
+                      className="inline-block rounded-lg px-6 py-2 text-sm font-medium text-white cursor-default"
                       style={{
                         background: `linear-gradient(135deg, ${effectiveBranding.primaryColor} 0%, ${effectiveBranding.secondaryColor} 100%)`,
                       }}
                     >
                       Bekijk Factuur
-                    </button>
+                    </span>
                   </div>
 
                   {/* Footer */}
