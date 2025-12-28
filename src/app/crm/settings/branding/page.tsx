@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Palette, Image, Eye, Save, RotateCcw, Type, Info } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Palette, Image, Eye, Save, RotateCcw, Type, Info, Upload, Trash2, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,10 @@ export default function WorkspaceBrandingPage() {
   const [agencyBranding, setAgencyBranding] = useState<AgencyBranding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadBranding();
@@ -100,6 +103,83 @@ export default function WorkspaceBrandingPage() {
   function handleReset() {
     setBranding(originalBranding);
     setMessage(null);
+  }
+
+  async function handleFileUpload(file: File) {
+    setIsUploading(true);
+    setMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload/logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.url) {
+        setBranding((prev) => ({ ...prev, companyLogo: data.url }));
+        setOriginalBranding((prev) => ({ ...prev, companyLogo: data.url }));
+        setMessage({ type: "success", text: "Logo geüpload!" });
+      } else {
+        setMessage({ type: "error", text: data.error || "Upload mislukt" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Upload mislukt. Probeer het opnieuw." });
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function handleDeleteLogo() {
+    setIsUploading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/upload/logo", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setBranding((prev) => ({ ...prev, companyLogo: "" }));
+        setOriginalBranding((prev) => ({ ...prev, companyLogo: "" }));
+        setMessage({ type: "success", text: "Logo verwijderd!" });
+      } else {
+        setMessage({ type: "error", text: "Verwijderen mislukt" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Verwijderen mislukt" });
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave() {
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      handleFileUpload(file);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
   }
 
   const hasChanges = JSON.stringify(branding) !== JSON.stringify(originalBranding);
@@ -187,7 +267,7 @@ export default function WorkspaceBrandingPage() {
               </CardContent>
             </Card>
 
-            {/* Logo */}
+            {/* Logo Upload */}
             <Card className="border-zinc-200/50 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -200,29 +280,68 @@ export default function WorkspaceBrandingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="logoUrl">Logo URL</Label>
-                    <Input
-                      id="logoUrl"
-                      type="url"
-                      placeholder="https://jouwsite.nl/logo.png"
-                      value={branding.companyLogo}
-                      onChange={(e) => setBranding({ ...branding, companyLogo: e.target.value })}
-                    />
-                  </div>
+                  {/* Current Logo Preview */}
                   {branding.companyLogo && (
-                    <div className="flex items-center gap-3 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
-                      <img
-                        src={branding.companyLogo}
-                        alt="Logo preview"
-                        className="h-10 max-w-[120px] object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Preview</span>
+                    <div className="relative inline-block">
+                      <div className="flex items-center gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+                        <img
+                          src={branding.companyLogo}
+                          alt="Huidige logo"
+                          className="h-16 max-w-[160px] object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='40' viewBox='0 0 100 40'%3E%3Crect fill='%23f0f0f0' width='100' height='40'/%3E%3Ctext x='50' y='25' text-anchor='middle' fill='%23999'%3EError%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                          onClick={handleDeleteLogo}
+                          disabled={isUploading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
+
+                  {/* Upload Zone */}
+                  <div
+                    className={`relative cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                      isDragging
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/20"
+                        : "border-zinc-300 hover:border-violet-400 dark:border-zinc-700 dark:hover:border-violet-600"
+                    } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    {isUploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600" />
+                        <p className="text-sm text-zinc-500">Uploaden...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-10 w-10 text-zinc-400" />
+                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                          <span className="font-medium text-violet-600 dark:text-violet-400">Klik om te uploaden</span>
+                          {" "}of sleep een bestand
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          PNG, JPG, WebP of SVG (max 2MB)
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

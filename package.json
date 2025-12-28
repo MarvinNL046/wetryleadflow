@@ -32,6 +32,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "@stackframe/stack": "^2.8.56",
     "@upstash/qstash": "^2.8.4",
+    "@vercel/blob": "^2.0.0",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
