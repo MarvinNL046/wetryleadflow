@@ -429,7 +429,7 @@ export default function BrandingPage() {
           </div>
 
           {/* Documents Preview */}
-          <TabsContent value="documents" className="flex-1 m-0 p-6 overflow-auto">
+          <TabsContent value="documents" className="flex-1 m-0 p-6 overflow-auto bg-zinc-100 dark:bg-zinc-900">
             <div className="mb-4 flex gap-2">
               <Button
                 variant={previewType === "invoice" ? "default" : "outline"}
@@ -446,13 +446,117 @@ export default function BrandingPage() {
                 Offerte
               </Button>
             </div>
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
-              <iframe
-                key={previewKey}
-                src={`/api/invoicing/pdf/preview?type=${previewType}&t=${previewKey}`}
-                className="w-full h-full"
-                title="PDF Preview"
-              />
+
+            {/* HTML Preview (like Moneybird) */}
+            <div className="bg-white shadow-xl rounded-sm mx-auto" style={{ width: "595px", minHeight: "842px", padding: "40px" }}>
+              {/* Header */}
+              <div className="flex justify-between mb-10">
+                <div className="max-w-[50%]">
+                  {branding.companyLogo ? (
+                    <img src={branding.companyLogo} alt="Logo" className="h-12 max-w-[150px] object-contain mb-2" />
+                  ) : (
+                    <div className="text-lg font-bold mb-1" style={{ color: effectiveColor }}>
+                      {branding.brandingAppName || "Uw Bedrijfsnaam"}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500 leading-relaxed">
+                    Voorbeeldstraat 123<br />
+                    1234 AB Amsterdam<br />
+                    info@uwbedrijf.nl<br />
+                    06 12345678
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-800 mb-2">
+                    {previewType === "invoice" ? "Factuur" : "Offerte"}
+                  </div>
+                  <div className="text-sm mb-1">
+                    {previewType === "invoice" ? "FAC-2025-0001" : "OFF-2025-0001"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Datum: 28-12-2025<br />
+                    {previewType === "invoice" ? "Vervaldatum: 11-01-2026" : "Geldig tot: 27-01-2026"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div className="mb-8 p-4 bg-gray-50 rounded">
+                <div className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">
+                  {previewType === "invoice" ? "Factuuradres" : "Offerte voor"}
+                </div>
+                <div className="text-sm font-bold mb-1">Voorbeeld BV</div>
+                <div className="text-xs text-gray-600">
+                  Jan de Vries<br />
+                  Klantstraat 456<br />
+                  5678 CD Rotterdam
+                </div>
+              </div>
+
+              {/* Reference */}
+              <div className="mb-4 text-xs text-gray-600">
+                <span className="font-medium">Kenmerk:</span> Website redesign project
+              </div>
+
+              {/* Table */}
+              <table className="w-full mb-6 text-xs">
+                <thead>
+                  <tr className="border-b-2" style={{ borderColor: effectiveColor }}>
+                    <th className="text-left py-2 font-semibold">Omschrijving</th>
+                    <th className="text-right py-2 font-semibold w-16">Aantal</th>
+                    <th className="text-right py-2 font-semibold w-20">Prijs</th>
+                    <th className="text-right py-2 font-semibold w-16">BTW</th>
+                    <th className="text-right py-2 font-semibold w-24">Totaal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2">Consultancy diensten</td>
+                    <td className="text-right py-2">10</td>
+                    <td className="text-right py-2">€ 100,00</td>
+                    <td className="text-right py-2">21%</td>
+                    <td className="text-right py-2">€ 1.000,00</td>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2">Software licentie</td>
+                    <td className="text-right py-2">1</td>
+                    <td className="text-right py-2">€ 500,00</td>
+                    <td className="text-right py-2">21%</td>
+                    <td className="text-right py-2">€ 500,00</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Totals */}
+              <div className="flex justify-end mb-8">
+                <div className="w-48">
+                  <div className="flex justify-between text-xs py-1">
+                    <span className="text-gray-600">Subtotaal excl. BTW</span>
+                    <span>€ 1.500,00</span>
+                  </div>
+                  <div className="flex justify-between text-xs py-1">
+                    <span className="text-gray-600">21% BTW</span>
+                    <span>€ 315,00</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold py-2 border-t-2 mt-1" style={{ borderColor: effectiveColor }}>
+                    <span>Totaal</span>
+                    <span>€ 1.815,00</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer info */}
+              <div className="text-[10px] text-gray-500 border-t pt-4 mt-auto">
+                <div className="flex justify-between">
+                  <div>
+                    <span className="font-medium">KVK:</span> 12345678 |
+                    <span className="font-medium"> BTW:</span> NL123456789B01
+                  </div>
+                  <div>
+                    <span className="font-medium">IBAN:</span> NL00 BANK 0123 4567 89
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
