@@ -191,10 +191,25 @@ export async function updateInvoiceSettings(data: {
 // ============================================
 
 export async function updateWorkspaceBranding(data: {
+  // Visual branding
   companyLogo?: string | null;
   brandingAppName?: string | null;
   brandingPrimaryColor?: string | null;
   brandingSecondaryColor?: string | null;
+  // Company details
+  companyName?: string | null;
+  companyAddress?: string | null;
+  companyEmail?: string | null;
+  companyPhone?: string | null;
+  companyWebsite?: string | null;
+  // Business info
+  kvkNumber?: string | null;
+  vatNumber?: string | null;
+  iban?: string | null;
+  bic?: string | null;
+  // Defaults
+  defaultPaymentTerms?: number;
+  defaultFooter?: string | null;
 }) {
   const ctx = await requireAuthContext();
 
@@ -212,14 +227,29 @@ export async function updateWorkspaceBranding(data: {
       .returning();
   }
 
-  // Update branding fields
+  // Update all branding and company fields
   const [updated] = await db
     .update(invoiceSettings)
     .set({
+      // Visual branding
       companyLogo: data.companyLogo !== undefined ? data.companyLogo : settings.companyLogo,
       brandingAppName: data.brandingAppName !== undefined ? data.brandingAppName : settings.brandingAppName,
       brandingPrimaryColor: data.brandingPrimaryColor !== undefined ? data.brandingPrimaryColor : settings.brandingPrimaryColor,
       brandingSecondaryColor: data.brandingSecondaryColor !== undefined ? data.brandingSecondaryColor : settings.brandingSecondaryColor,
+      // Company details
+      companyName: data.companyName !== undefined ? data.companyName : settings.companyName,
+      companyAddress: data.companyAddress !== undefined ? data.companyAddress : settings.companyAddress,
+      companyEmail: data.companyEmail !== undefined ? data.companyEmail : settings.companyEmail,
+      companyPhone: data.companyPhone !== undefined ? data.companyPhone : settings.companyPhone,
+      companyWebsite: data.companyWebsite !== undefined ? data.companyWebsite : settings.companyWebsite,
+      // Business info
+      kvkNumber: data.kvkNumber !== undefined ? data.kvkNumber : settings.kvkNumber,
+      vatNumber: data.vatNumber !== undefined ? data.vatNumber : settings.vatNumber,
+      iban: data.iban !== undefined ? data.iban : settings.iban,
+      bic: data.bic !== undefined ? data.bic : settings.bic,
+      // Defaults
+      defaultPaymentTerms: data.defaultPaymentTerms !== undefined ? data.defaultPaymentTerms : settings.defaultPaymentTerms,
+      defaultFooter: data.defaultFooter !== undefined ? data.defaultFooter : settings.defaultFooter,
       updatedAt: new Date(),
     })
     .where(eq(invoiceSettings.workspaceId, ctx.workspace.id))
@@ -258,11 +288,25 @@ export async function getWorkspaceBranding() {
   }
 
   return {
-    // Workspace branding (editable)
+    // Visual branding (editable)
     companyLogo: settings?.companyLogo || null,
     brandingAppName: settings?.brandingAppName || null,
     brandingPrimaryColor: settings?.brandingPrimaryColor || null,
     brandingSecondaryColor: settings?.brandingSecondaryColor || null,
+    // Company details
+    companyName: settings?.companyName || null,
+    companyAddress: settings?.companyAddress || null,
+    companyEmail: settings?.companyEmail || null,
+    companyPhone: settings?.companyPhone || null,
+    companyWebsite: settings?.companyWebsite || null,
+    // Business info
+    kvkNumber: settings?.kvkNumber || null,
+    vatNumber: settings?.vatNumber || null,
+    iban: settings?.iban || null,
+    bic: settings?.bic || null,
+    // Defaults
+    defaultPaymentTerms: settings?.defaultPaymentTerms ?? 14,
+    defaultFooter: settings?.defaultFooter || null,
     // Agency info (for display)
     isAgencyClient,
     agencyBranding,
